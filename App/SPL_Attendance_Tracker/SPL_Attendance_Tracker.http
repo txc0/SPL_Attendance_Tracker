@@ -1,0 +1,6 @@
+@SPL_Attendance_Tracker_HostAddress = http://localhost:5213
+
+GET {{SPL_Attendance_Tracker_HostAddress}}/weatherforecast/
+Accept: application/json
+
+###
