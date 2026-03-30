@@ -1,0 +1,75 @@
+{
+  "info": {
+    "name": "SPL Attendance Management System — Sprint 1",
+    "description": "Postman collection for Sprint 1 API endpoints: Check-In, Check-Out, History, By-Date",
+    "schema": "https://schema.getpostman.com/json/collection/v2.1.0/collection.json"
+  },
+  "variable": [
+    { "key": "baseUrl",    "value": "https://localhost:7001" },
+    { "key": "employeeId", "value": "1" }
+  ],
+  "item": [
+    {
+      "name": "Check-In",
+      "request": {
+        "method": "POST",
+        "header": [{ "key": "Content-Type", "value": "application/json" }],
+        "url": { "raw": "{{baseUrl}}/api/attendance/checkin" },
+        "body": {
+          "mode": "raw",
+          "raw": "{\n  \"employeeId\": {{employeeId}}\n}"
+        }
+      }
+    },
+    {
+      "name": "Check-Out",
+      "request": {
+        "method": "POST",
+        "header": [{ "key": "Content-Type", "value": "application/json" }],
+        "url": { "raw": "{{baseUrl}}/api/attendance/checkout" },
+        "body": {
+          "mode": "raw",
+          "raw": "{\n  \"employeeId\": {{employeeId}}\n}"
+        }
+      }
+    },
+    {
+      "name": "Get Attendance History",
+      "request": {
+        "method": "GET",
+        "url": { "raw": "{{baseUrl}}/api/attendance/{{employeeId}}" }
+      }
+    },
+    {
+      "name": "Get Attendance By Date",
+      "request": {
+        "method": "GET",
+        "url": { "raw": "{{baseUrl}}/api/attendance/{{employeeId}}/2025-07-01" }
+      }
+    },
+    {
+      "name": "[TC-002] Duplicate Check-In (expect 400)",
+      "request": {
+        "method": "POST",
+        "header": [{ "key": "Content-Type", "value": "application/json" }],
+        "url": { "raw": "{{baseUrl}}/api/attendance/checkin" },
+        "body": {
+          "mode": "raw",
+          "raw": "{\n  \"employeeId\": {{employeeId}}\n}"
+        }
+      }
+    },
+    {
+      "name": "[TC-004] Check-Out Without Check-In (expect 400)",
+      "request": {
+        "method": "POST",
+        "header": [{ "key": "Content-Type", "value": "application/json" }],
+        "url": { "raw": "{{baseUrl}}/api/attendance/checkout" },
+        "body": {
+          "mode": "raw",
+          "raw": "{\n  \"employeeId\": 9999\n}"
+        }
+      }
+    }
+  ]
+}

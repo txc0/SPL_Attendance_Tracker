@@ -1,0 +1,46 @@
+## .NET build outputs
+bin/
+obj/
+*.user
+.vs/
+*.suo
+*.userosscache
+*.sln.docstates
+
+## NuGet package cache
+packages/
+*.nupkg
+.nuget/
+
+## Rider / Resharper
+.idea/
+*.DotSettings.user
+_ReSharper*/
+
+## Visual Studio Code
+.vscode/
+
+## OS artifacts
+.DS_Store
+Thumbs.db
+
+## React frontend (Sprint 3+)
+Attendance.Client/node_modules/
+Attendance.Client/build/
+Attendance.Client/.env.local
+
+## ─────────────────────────────────────────────────────
+##  SECRETS — NEVER COMMIT
+## ─────────────────────────────────────────────────────
+appsettings.json
+appsettings.Development.json
+# Use appsettings.Example.json (committed) as the template.
+# Each developer creates their own local appsettings.json.
+
+## Test results
+TestResults/
+*.trx
+*.coverage
+
+## Publish output
+publish/

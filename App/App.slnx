@@ -1,5 +1,0 @@
-<Solution>
-  <Project Path="BLL/BLL.csproj" />
-  <Project Path="DAL/DAL.csproj" />
-  <Project Path="SPL_Attendance_Tracker/SPL_Attendance_Tracker.csproj" />
-</Solution>
