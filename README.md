@@ -41,7 +41,6 @@ The **SPL Attendance Management System** is an enterprise-grade web application 
 | Database           | MySQL 8.x (Pomelo EF Core provider) |
 | Dependency Injection | Built-in ASP.NET Core DI          |
 | API Documentation  | Swagger / Swashbuckle               |
-| Unit Testing       | xUnit + Moq + FluentAssertions      |
 | Version Control    | Git + GitHub (Git Flow)             |
 
 ---
