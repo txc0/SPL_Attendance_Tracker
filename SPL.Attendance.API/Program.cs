@@ -8,9 +8,7 @@ using System.Reflection;
 
 var builder = WebApplication.CreateBuilder(args);
 
-// ══════════════════════════════════════════════════════════════════════════
-// 1. DATABASE — EF Core 8 + Pomelo MySQL provider
-// ══════════════════════════════════════════════════════════════════════════
+
 var connectionString = builder.Configuration.GetConnectionString("SPLAttendanceDB")
     ?? throw new InvalidOperationException(
         "Connection string 'SPLAttendanceDB' is missing from appsettings.json.");
@@ -20,18 +18,15 @@ builder.Services.AddDbContext<SPLAttendanceDbContext>(options =>
                      ServerVersion.AutoDetect(connectionString),
                      mySqlOptions => mySqlOptions.MigrationsAssembly("SPL.Attendance.Data")));
 
-// ══════════════════════════════════════════════════════════════════════════
-// 2. DEPENDENCY INJECTION (3-Tier wiring)
-// ══════════════════════════════════════════════════════════════════════════
 //   Data Layer
 builder.Services.AddScoped<IAttendanceRepository, AttendanceRepository>();
+builder.Services.AddScoped<IEmployeeRepository, EmployeeRepository>();
 
 //   Business Layer
 builder.Services.AddScoped<IAttendanceService, AttendanceService>();
+builder.Services.AddScoped<IEmployeeService, EmployeeService>();
 
-// ══════════════════════════════════════════════════════════════════════════
-// 3. API LAYER — Controllers, JSON, CORS
-// ══════════════════════════════════════════════════════════════════════════
+
 builder.Services.AddControllers()
     .AddJsonOptions(opts =>
     {
@@ -41,9 +36,7 @@ builder.Services.AddControllers()
 
 builder.Services.AddEndpointsApiExplorer();
 
-// ══════════════════════════════════════════════════════════════════════════
-// 4. SWAGGER / SWASHBUCKLE
-// ══════════════════════════════════════════════════════════════════════════
+
 builder.Services.AddSwaggerGen(c =>
 {
     c.SwaggerDoc("v1", new Microsoft.OpenApi.Models.OpenApiInfo

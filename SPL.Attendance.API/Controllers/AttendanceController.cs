@@ -4,10 +4,6 @@ using SPL.Attendance.Business.Interfaces;
 
 namespace SPL.Attendance.API.Controllers
 {
-    /// <summary>
-    /// Exposes attendance endpoints for the SPL Attendance Management System.
-    /// Controllers contain NO business logic — they delegate entirely to IAttendanceService.
-    /// </summary>
     [ApiController]
     [Route("api/attendance")]
     [Produces("application/json")]
@@ -48,9 +44,6 @@ namespace SPL.Attendance.API.Controllers
             return Ok(ApiResponse<object>.Ok($"Employee {request.EmployeeId} checked in successfully at {DateTime.Now:HH:mm:ss}."));
         }
 
-        // ────────────────────────────────────────────────────────────────────
-        // POST /api/attendance/checkout
-        // ────────────────────────────────────────────────────────────────────
 
         /// <summary>Records an employee check-out for today and calculates work hours.</summary>
         /// <remarks>
@@ -73,11 +66,6 @@ namespace SPL.Attendance.API.Controllers
             return Ok(ApiResponse<object>.Ok($"Employee {request.EmployeeId} checked out successfully at {DateTime.Now:HH:mm:ss}."));
         }
 
-        // ────────────────────────────────────────────────────────────────────
-        // GET /api/attendance/{employeeId}
-        // ────────────────────────────────────────────────────────────────────
-
-        /// <summary>Returns the full attendance history for an employee (newest first).</summary>
         [HttpGet("{employeeId:int}")]
         [ProducesResponseType(typeof(ApiResponse<List<Business.Models.AttendanceRecordDto>>), StatusCodes.Status200OK)]
         public async Task<IActionResult> GetHistory([FromRoute] int employeeId)
@@ -89,10 +77,6 @@ namespace SPL.Attendance.API.Controllers
                 $"Retrieved {records.Count} attendance record(s) for employee {employeeId}.",
                 records));
         }
-
-        // ────────────────────────────────────────────────────────────────────
-        // GET /api/attendance/{employeeId}/{date}
-        // ────────────────────────────────────────────────────────────────────
 
         /// <summary>Returns the attendance record for a specific employee on a specific date.</summary>
         /// <param name="employeeId">Employee identifier.</param>

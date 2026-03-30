@@ -2,7 +2,6 @@ using System.ComponentModel.DataAnnotations;
 
 namespace SPL.Attendance.API.DTOs
 {
-    /// <summary>Request body for POST /api/attendance/checkin</summary>
     public class CheckInRequest
     {
         [Required]
@@ -10,7 +9,6 @@ namespace SPL.Attendance.API.DTOs
         public int EmployeeId { get; set; }
     }
 
-    /// <summary>Request body for POST /api/attendance/checkout</summary>
     public class CheckOutRequest
     {
         [Required]

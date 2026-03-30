@@ -1,7 +1,7 @@
 {
   "info": {
     "name": "SPL Attendance Management System — Sprint 1",
-    "description": "Postman collection for Sprint 1 API endpoints: Check-In, Check-Out, History, By-Date",
+    "description": "Full collection: Employee CRUD + Attendance Check-In/Out endpoints",
     "schema": "https://schema.getpostman.com/json/collection/v2.1.0/collection.json"
   },
   "variable": [
@@ -10,66 +10,145 @@
   ],
   "item": [
     {
-      "name": "Check-In",
-      "request": {
-        "method": "POST",
-        "header": [{ "key": "Content-Type", "value": "application/json" }],
-        "url": { "raw": "{{baseUrl}}/api/attendance/checkin" },
-        "body": {
-          "mode": "raw",
-          "raw": "{\n  \"employeeId\": {{employeeId}}\n}"
+      "name": "👤 Employee Management",
+      "item": [
+        {
+          "name": "GET All Employees",
+          "request": {
+            "method": "GET",
+            "url": { "raw": "{{baseUrl}}/api/employees" }
+          }
+        },
+        {
+          "name": "GET Employee By ID",
+          "request": {
+            "method": "GET",
+            "url": { "raw": "{{baseUrl}}/api/employees/{{employeeId}}" }
+          }
+        },
+        {
+          "name": "POST Create Employee (no supervisor)",
+          "request": {
+            "method": "POST",
+            "header": [{ "key": "Content-Type", "value": "application/json" }],
+            "url": { "raw": "{{baseUrl}}/api/employees" },
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"employeeCode\": \"EMP002\",\n  \"name\": \"Rahim Uddin\",\n  \"email\": \"rahim@spl.com\"\n}"
+            }
+          }
+        },
+        {
+          "name": "POST Create Employee (with supervisor)",
+          "request": {
+            "method": "POST",
+            "header": [{ "key": "Content-Type", "value": "application/json" }],
+            "url": { "raw": "{{baseUrl}}/api/employees" },
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"employeeCode\": \"EMP003\",\n  \"name\": \"Karim Hossain\",\n  \"email\": \"karim@spl.com\",\n  \"supervisorId\": 1\n}"
+            }
+          }
+        },
+        {
+          "name": "PUT Update Employee",
+          "request": {
+            "method": "PUT",
+            "header": [{ "key": "Content-Type", "value": "application/json" }],
+            "url": { "raw": "{{baseUrl}}/api/employees/{{employeeId}}" },
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"name\": \"Demo Employee Updated\",\n  \"email\": \"demo.updated@spl.com\",\n  \"supervisorId\": null\n}"
+            }
+          }
+        },
+        {
+          "name": "DELETE Deactivate Employee",
+          "request": {
+            "method": "DELETE",
+            "url": { "raw": "{{baseUrl}}/api/employees/{{employeeId}}" }
+          }
+        },
+        {
+          "name": "[Validation] Duplicate EmployeeCode (expect 400)",
+          "request": {
+            "method": "POST",
+            "header": [{ "key": "Content-Type", "value": "application/json" }],
+            "url": { "raw": "{{baseUrl}}/api/employees" },
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"employeeCode\": \"EMP001\",\n  \"name\": \"Should Fail\"\n}"
+            }
+          }
+        },
+        {
+          "name": "[Validation] Invalid Email (expect 400)",
+          "request": {
+            "method": "POST",
+            "header": [{ "key": "Content-Type", "value": "application/json" }],
+            "url": { "raw": "{{baseUrl}}/api/employees" },
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"employeeCode\": \"EMP099\",\n  \"name\": \"Bad Email\",\n  \"email\": \"not-an-email\"\n}"
+            }
+          }
         }
-      }
+      ]
     },
     {
-      "name": "Check-Out",
-      "request": {
-        "method": "POST",
-        "header": [{ "key": "Content-Type", "value": "application/json" }],
-        "url": { "raw": "{{baseUrl}}/api/attendance/checkout" },
-        "body": {
-          "mode": "raw",
-          "raw": "{\n  \"employeeId\": {{employeeId}}\n}"
+      "name": "🕐 Attendance",
+      "item": [
+        {
+          "name": "POST Check-In",
+          "request": {
+            "method": "POST",
+            "header": [{ "key": "Content-Type", "value": "application/json" }],
+            "url": { "raw": "{{baseUrl}}/api/attendance/checkin" },
+            "body": { "mode": "raw", "raw": "{\n  \"employeeId\": {{employeeId}}\n}" }
+          }
+        },
+        {
+          "name": "POST Check-Out",
+          "request": {
+            "method": "POST",
+            "header": [{ "key": "Content-Type", "value": "application/json" }],
+            "url": { "raw": "{{baseUrl}}/api/attendance/checkout" },
+            "body": { "mode": "raw", "raw": "{\n  \"employeeId\": {{employeeId}}\n}" }
+          }
+        },
+        {
+          "name": "GET Attendance History",
+          "request": {
+            "method": "GET",
+            "url": { "raw": "{{baseUrl}}/api/attendance/{{employeeId}}" }
+          }
+        },
+        {
+          "name": "GET Attendance By Date",
+          "request": {
+            "method": "GET",
+            "url": { "raw": "{{baseUrl}}/api/attendance/{{employeeId}}/2025-07-01" }
+          }
+        },
+        {
+          "name": "[TC-002] Duplicate Check-In (expect 400)",
+          "request": {
+            "method": "POST",
+            "header": [{ "key": "Content-Type", "value": "application/json" }],
+            "url": { "raw": "{{baseUrl}}/api/attendance/checkin" },
+            "body": { "mode": "raw", "raw": "{\n  \"employeeId\": {{employeeId}}\n}" }
+          }
+        },
+        {
+          "name": "[TC-004] Check-Out Without Check-In (expect 400)",
+          "request": {
+            "method": "POST",
+            "header": [{ "key": "Content-Type", "value": "application/json" }],
+            "url": { "raw": "{{baseUrl}}/api/attendance/checkout" },
+            "body": { "mode": "raw", "raw": "{\n  \"employeeId\": 9999\n}" }
+          }
         }
-      }
-    },
-    {
-      "name": "Get Attendance History",
-      "request": {
-        "method": "GET",
-        "url": { "raw": "{{baseUrl}}/api/attendance/{{employeeId}}" }
-      }
-    },
-    {
-      "name": "Get Attendance By Date",
-      "request": {
-        "method": "GET",
-        "url": { "raw": "{{baseUrl}}/api/attendance/{{employeeId}}/2025-07-01" }
-      }
-    },
-    {
-      "name": "[TC-002] Duplicate Check-In (expect 400)",
-      "request": {
-        "method": "POST",
-        "header": [{ "key": "Content-Type", "value": "application/json" }],
-        "url": { "raw": "{{baseUrl}}/api/attendance/checkin" },
-        "body": {
-          "mode": "raw",
-          "raw": "{\n  \"employeeId\": {{employeeId}}\n}"
-        }
-      }
-    },
-    {
-      "name": "[TC-004] Check-Out Without Check-In (expect 400)",
-      "request": {
-        "method": "POST",
-        "header": [{ "key": "Content-Type", "value": "application/json" }],
-        "url": { "raw": "{{baseUrl}}/api/attendance/checkout" },
-        "body": {
-          "mode": "raw",
-          "raw": "{\n  \"employeeId\": 9999\n}"
-        }
-      }
+      ]
     }
   ]
 }
