@@ -4,10 +4,6 @@ using SPL.Attendance.API.DTOs;
 
 namespace SPL.Attendance.API.Middleware
 {
-    /// <summary>
-    /// Global exception handler middleware.
-    /// Translates domain exceptions to structured HTTP responses.
-    /// </summary>
     public class ExceptionHandlingMiddleware
     {
         private readonly RequestDelegate _next;

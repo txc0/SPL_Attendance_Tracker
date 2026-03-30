@@ -19,15 +19,6 @@ namespace SPL.Attendance.API.Controllers
             _logger  = logger;
         }
 
-        // ────────────────────────────────────────────────────────────────────
-        // POST /api/attendance/checkin
-        // ────────────────────────────────────────────────────────────────────
-
-        /// <summary>Records an employee check-in for today.</summary>
-        /// <remarks>
-        /// An employee may check in only once per calendar day.
-        /// Returns 400 if a check-in record already exists for today.
-        /// </remarks>
         [HttpPost("checkin")]
         [ProducesResponseType(typeof(ApiResponse<object>), StatusCodes.Status200OK)]
         [ProducesResponseType(typeof(ApiResponse<object>), StatusCodes.Status400BadRequest)]
@@ -45,11 +36,6 @@ namespace SPL.Attendance.API.Controllers
         }
 
 
-        /// <summary>Records an employee check-out for today and calculates work hours.</summary>
-        /// <remarks>
-        /// Requires a prior check-in for today. Work hours are calculated and persisted.
-        /// Returns 400 if there is no check-in or if the employee already checked out.
-        /// </remarks>
         [HttpPost("checkout")]
         [ProducesResponseType(typeof(ApiResponse<object>), StatusCodes.Status200OK)]
         [ProducesResponseType(typeof(ApiResponse<object>), StatusCodes.Status400BadRequest)]
@@ -78,9 +64,6 @@ namespace SPL.Attendance.API.Controllers
                 records));
         }
 
-        /// <summary>Returns the attendance record for a specific employee on a specific date.</summary>
-        /// <param name="employeeId">Employee identifier.</param>
-        /// <param name="date">Date in yyyy-MM-dd format (e.g. 2025-07-01).</param>
         [HttpGet("{employeeId:int}/{date}")]
         [ProducesResponseType(typeof(ApiResponse<Business.Models.AttendanceRecordDto>), StatusCodes.Status200OK)]
         [ProducesResponseType(typeof(ApiResponse<object>), StatusCodes.Status404NotFound)]
