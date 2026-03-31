@@ -1,9 +1,5 @@
 namespace SPL.Attendance.API.DTOs
 {
-    /// <summary>
-    /// Standard envelope for all API responses.
-    /// Ensures a consistent shape: { success, message, data }.
-    /// </summary>
     public class ApiResponse<T>
     {
         public bool Success { get; set; }

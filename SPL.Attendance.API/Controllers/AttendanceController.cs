@@ -1,6 +1,7 @@
 using Microsoft.AspNetCore.Mvc;
 using SPL.Attendance.API.DTOs;
 using SPL.Attendance.Business.Interfaces;
+using SPL.Attendance.Business.Models;
 
 namespace SPL.Attendance.API.Controllers
 {
@@ -83,6 +84,31 @@ namespace SPL.Attendance.API.Controllers
 
             return Ok(ApiResponse<Business.Models.AttendanceRecordDto>.Ok(
                 "Attendance record retrieved successfully.", record));
+        }
+
+        // GET /api/attendance/{employeeId}/logs
+        [HttpGet("{employeeId:int}/logs")]
+        public async Task<IActionResult> GetLogs([FromRoute] int employeeId)
+        {
+            var logs = await _service.GetLogsAsync(employeeId);
+            return Ok(ApiResponse<List<AttendanceLogDto>>.Ok(
+                $"{logs.Count} log(s) found for employee {employeeId}.", logs));
+        }
+
+        // GET /api/attendance/{employeeId}/logs/{date}
+        [HttpGet("{employeeId:int}/logs/{date}")]
+        public async Task<IActionResult> GetLogsByDate(
+            [FromRoute] int employeeId,
+            [FromRoute] string date)
+        {
+            if (!DateTime.TryParse(date, out var parsedDate))
+                return BadRequest(ApiResponse<object>.Fail(
+                    "Invalid date format. Use yyyy-MM-dd."));
+
+            var logs = await _service.GetLogsByDateAsync(employeeId, parsedDate);
+            return Ok(ApiResponse<List<AttendanceLogDto>>.Ok(
+                $"{logs.Count} log(s) found for employee {employeeId} on {parsedDate:dd-MMM-yyyy}.",
+                logs));
         }
     }
 }

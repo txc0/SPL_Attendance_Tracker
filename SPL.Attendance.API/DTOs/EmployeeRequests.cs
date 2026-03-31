@@ -2,7 +2,6 @@ using System.ComponentModel.DataAnnotations;
 
 namespace SPL.Attendance.API.DTOs
 {
-    /// <summary>Request body for POST /api/employees</summary>
     public class CreateEmployeeRequest
     {
         [Required(ErrorMessage = "EmployeeCode is required.")]

@@ -12,5 +12,7 @@ namespace SPL.Attendance.Business.Interfaces
         Task<List<AttendanceRecordDto>> GetAttendanceHistoryAsync(int employeeId);
 
         Task<AttendanceRecordDto?> GetAttendanceByDateAsync(int employeeId, DateTime date);
+        Task<List<AttendanceLogDto>> GetLogsAsync(int employeeId);
+        Task<List<AttendanceLogDto>> GetLogsByDateAsync(int employeeId, DateTime date);
     }
 }

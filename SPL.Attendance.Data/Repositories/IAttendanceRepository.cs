@@ -2,10 +2,6 @@ using SPL.Attendance.Data.Entities;
 
 namespace SPL.Attendance.Data.Repositories
 {
-    /// <summary>
-    /// Contract for all attendance-related database operations.
-    /// The Business Layer depends on this interface, never on the concrete class.
-    /// </summary>
     public interface IAttendanceRepository
     {
         /// <summary>Retrieves the attendance record for a given employee on a given date, or null.</summary>
@@ -25,5 +21,21 @@ namespace SPL.Attendance.Data.Repositories
 
         /// <summary>Returns true if the employee exists and is active.</summary>
         Task<bool> EmployeeExistsAsync(int employeeId);
+
+        Task AddLogAsync(AttendanceLog log);
+
+        Task<List<AttendanceLog>> GetLogsByEmployeeAsync(int employeeId);
+
+        Task<List<AttendanceLog>> GetLogsByDateAsync(int employeeId, DateTime date);
+
+        Task UpdateLogAsync(AttendanceLog log);
+        Task<string> GetEmployeeNameAsync(int employeeId);
+
+        Task<AttendanceLog?> GetOpenLogAsync(int employeeId, DateTime date);
+        Task<MonthlyAttendanceSummary?> GetMonthlyAsync(int employeeId, int month, int year);
+
+        Task UpsertMonthlyAsync(Data.Entities.MonthlyAttendanceSummary summary);
+
+        Task ResetMonthlyAsync(int employeeId, int month, int year, string managerName);
     }
 }

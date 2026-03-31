@@ -42,5 +42,8 @@ namespace SPL.Attendance.Data.Entities
         // ── Navigation property ──────────────────────────────────────────────
         [ForeignKey(nameof(EmployeeId))]
         public virtual Employee Employee { get; set; } = null!;
+
+        public virtual ICollection<AttendanceLog> Logs { get; set; } = new List<AttendanceLog>();
+        public bool IsCompleted { get; set; }
     }
 }

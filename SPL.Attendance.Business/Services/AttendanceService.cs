@@ -14,57 +14,188 @@ namespace SPL.Attendance.Business.Services
             _repository = repository;
         }
 
+        //public async Task CheckInAsync(int employeeId)
+        //{
+        //    if (!await _repository.EmployeeExistsAsync(employeeId))
+        //        throw new KeyNotFoundException($"Employee with ID {employeeId} was not found or is inactive.");
+
+        //    var today = DateTime.Today;
+        //    var existing = await _repository.GetAttendanceAsync(employeeId, today);
+
+        //    if (existing != null)
+        //        throw new InvalidOperationException(
+        //            $"Employee {employeeId} has already checked in today ({today:dd-MMM-yyyy}). " +
+        //            "Duplicate check-in is not permitted.");
+
+        //    var attendance = new Data.Entities.Attendance
+        //    {
+        //        EmployeeId    = employeeId,
+        //        AttendanceDate = today,
+        //        CheckInTime   = DateTime.Now,
+        //        Status        = "Present"
+        //    };
+
+        //    await _repository.AddCheckInAsync(attendance);
+        //    // Get employee name for the log
+        //    var employee = await _repository.GetEmployeeNameAsync(employeeId);
+
+        //    // Write check-in log entry
+        //    var log = new Data.Entities.AttendanceLog
+        //    {
+        //        AttendanceId = attendance.Id,
+        //        EmployeeId = employeeId,
+        //        EmployeeName = employee,
+        //        CheckInTime = attendance.CheckInTime,
+        //        LogDate = today
+        //    };
+        //    await _repository.AddLogAsync(log);
+        //}
+
         public async Task CheckInAsync(int employeeId)
         {
             if (!await _repository.EmployeeExistsAsync(employeeId))
-                throw new KeyNotFoundException($"Employee with ID {employeeId} was not found or is inactive.");
+                throw new KeyNotFoundException(
+                    $"Employee with ID {employeeId} was not found or is inactive.");
 
             var today = DateTime.Today;
-            var existing = await _repository.GetAttendanceAsync(employeeId, today);
+            var now = DateTime.Now;
 
-            if (existing != null)
-                throw new InvalidOperationException(
-                    $"Employee {employeeId} has already checked in today ({today:dd-MMM-yyyy}). " +
-                    "Duplicate check-in is not permitted.");
-
-            var attendance = new Data.Entities.Attendance
-            {
-                EmployeeId    = employeeId,
-                AttendanceDate = today,
-                CheckInTime   = DateTime.Now,
-                Status        = "Present"
-            };
-
-            await _repository.AddCheckInAsync(attendance);
-        }
-
-        public async Task CheckOutAsync(int employeeId)
-        {
-            if (!await _repository.EmployeeExistsAsync(employeeId))
-                throw new KeyNotFoundException($"Employee with ID {employeeId} was not found or is inactive.");
-
-            var today = DateTime.Today;
+            // Get or create the daily attendance summary row
             var attendance = await _repository.GetAttendanceAsync(employeeId, today);
 
             if (attendance == null)
-                throw new InvalidOperationException(
-                    $"Employee {employeeId} has no check-in record for today ({today:dd-MMM-yyyy}). " +
-                    "Check-out requires a valid check-in.");
+            {
+                // First check-in of the day — create the summary row
+                attendance = new Data.Entities.Attendance
+                {
+                    EmployeeId = employeeId,
+                    AttendanceDate = today,
+                    CheckInTime = now,
+                    Status = "Present"
+                };
+                await _repository.AddCheckInAsync(attendance);
+            }
+            // If attendance row already exists — do NOT throw
+            // Just allow a new log entry below
 
-            if (attendance.CheckOutTime != null)
-                throw new InvalidOperationException(
-                    $"Employee {employeeId} has already checked out today ({today:dd-MMM-yyyy}). " +
-                    "Duplicate check-out is not permitted.");
+            // Always write a new log entry for every check-in
+            var employeeName = await _repository.GetEmployeeNameAsync(employeeId);
 
-            attendance.CheckOutTime = DateTime.Now;
+            var log = new Data.Entities.AttendanceLog
+            {
+                AttendanceId = attendance.Id,
+                EmployeeId = employeeId,
+                EmployeeName = employeeName,
+                CheckInTime = now,
+                CheckOutTime = null,
+                LogDate = today
+            };
 
-            attendance.WorkHours = (decimal)(attendance.CheckOutTime - attendance.CheckInTime)!
-                                   .Value.TotalHours;
-
-            attendance.WorkHours = Math.Round(attendance.WorkHours.Value, 2);
-
-            await _repository.UpdateCheckOutAsync(attendance);
+            await _repository.AddLogAsync(log);
         }
+
+        //public async Task CheckOutAsync(int employeeId)
+        //{
+        //    if (!await _repository.EmployeeExistsAsync(employeeId))
+        //        throw new KeyNotFoundException($"Employee with ID {employeeId} was not found or is inactive.");
+
+        //    var today = DateTime.Today;
+        //    var attendance = await _repository.GetAttendanceAsync(employeeId, today);
+
+        //    if (attendance == null)
+        //        throw new InvalidOperationException(
+        //            $"Employee {employeeId} has no check-in record for today ({today:dd-MMM-yyyy}). " +
+        //            "Check-out requires a valid check-in.");
+
+        //    if (attendance.CheckOutTime != null)
+        //        throw new InvalidOperationException(
+        //            $"Employee {employeeId} has already checked out today ({today:dd-MMM-yyyy}). " +
+        //            "Duplicate check-out is not permitted.");
+
+        //    attendance.CheckOutTime = DateTime.Now;
+
+        //    attendance.WorkHours = (decimal)(attendance.CheckOutTime - attendance.CheckInTime)!
+        //                           .Value.TotalHours;
+
+        //    attendance.WorkHours = Math.Round(attendance.WorkHours.Value, 2);
+
+        //    await _repository.UpdateCheckOutAsync(attendance);
+
+        //}
+
+        public async Task CheckOutAsync(int employeeId)
+{
+    if (!await _repository.EmployeeExistsAsync(employeeId))
+        throw new KeyNotFoundException(
+            $"Employee with ID {employeeId} was not found or is inactive.");
+
+    var today = DateTime.Today;
+    var now   = DateTime.Now;
+
+    var attendance = await _repository.GetAttendanceAsync(employeeId, today);
+
+    // Must have checked in at least once today
+    if (attendance == null)
+        throw new InvalidOperationException(
+            $"Employee {employeeId} has no check-in record for today. " +
+            "Please check in first.");
+
+    // Find the latest log entry that has no check-out yet
+    var openLog = await _repository.GetOpenLogAsync(employeeId, today);
+
+    if (openLog == null)
+        throw new InvalidOperationException(
+            $"Employee {employeeId} has no open check-in to check out from. " +
+            "Please check in first.");
+
+    // Fill check-out on the open log entry
+    openLog.CheckOutTime = now;
+    await _repository.UpdateLogAsync(openLog);
+
+    // Update the summary row with latest check-out and total work hours
+    attendance.CheckOutTime = now;
+
+    // Calculate total work hours from all completed log entries today
+    var todayLogs = await _repository.GetLogsByDateAsync(employeeId, today);
+    decimal totalHours = 0;
+
+    foreach (var log in todayLogs)
+    {
+        if (log.CheckInTime.HasValue && log.CheckOutTime.HasValue)
+        {
+            totalHours += (decimal)(log.CheckOutTime.Value 
+                         - log.CheckInTime.Value).TotalHours;
+        }
+    }
+
+    attendance.WorkHours  = Math.Round(totalHours, 2);
+    attendance.IsCompleted = true;
+
+    await _repository.UpdateCheckOutAsync(attendance);
+
+    // Update monthly count
+    var summary = await _repository.GetMonthlyAsync(
+        employeeId, now.Month, now.Year);
+
+    if (summary == null)
+    {
+        summary = new Data.Entities.MonthlyAttendanceSummary
+        {
+            EmployeeId = employeeId,
+            Month      = now.Month,
+            Year       = now.Year,
+            TotalDays  = 1
+        };
+    }
+    else
+    {
+        summary.TotalDays += 1;
+    }
+
+    await _repository.UpsertMonthlyAsync(summary);
+}
+
+
 
         public async Task<List<AttendanceRecordDto>> GetAttendanceHistoryAsync(int employeeId)
         {
@@ -87,6 +218,35 @@ namespace SPL.Attendance.Business.Services
             CheckOutTime   = a.CheckOutTime,
             WorkHours      = a.WorkHours,
             Status         = a.Status
+        };
+
+        public Task<AttendanceRecordDto> GetEmployeeNameAsync(int employeeId)
+        {
+            throw new NotImplementedException();
+        }
+
+        public async Task<List<AttendanceLogDto>> GetLogsAsync(int employeeId)
+        {
+            var logs = await _repository.GetLogsByEmployeeAsync(employeeId);
+            return logs.Select(MapLogToDto).ToList();
+        }
+
+        public async Task<List<AttendanceLogDto>> GetLogsByDateAsync(
+            int employeeId, DateTime date)
+        {
+            var logs = await _repository.GetLogsByDateAsync(employeeId, date);
+            return logs.Select(MapLogToDto).ToList();
+        }
+
+        private static AttendanceLogDto MapLogToDto(Data.Entities.AttendanceLog l) => new()
+        {
+            Id = l.Id,
+            EmployeeId = l.EmployeeId,
+            EmployeeName = l.EmployeeName,
+            CheckInTime = l.CheckInTime,
+            CheckOutTime = l.CheckOutTime,
+            LogDate = l.LogDate,
+            CreatedAt = l.CreatedAt
         };
     }
 }

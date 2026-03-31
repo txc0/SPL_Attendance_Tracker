@@ -11,4 +11,8 @@
     <ProjectReference Include="..\SPL.Attendance.Data\SPL.Attendance.Data.csproj" />
   </ItemGroup>
 
+  <ItemGroup>
+    <Folder Include="SPL\Attendance\Data\Entities\" />
+  </ItemGroup>
+
 </Project>

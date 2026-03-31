@@ -3,10 +3,6 @@ using SPL.Attendance.Data.Entities;
 
 namespace SPL.Attendance.Data.Context
 {
-    /// <summary>
-    /// EF Core DbContext for the SPL Attendance Management System.
-    /// Uses Pomelo MySQL provider (ASP.NET Core 8 / EF Core 8).
-    /// </summary>
     public class SPLAttendanceDbContext : DbContext
     {
         public SPLAttendanceDbContext(DbContextOptions<SPLAttendanceDbContext> options)
@@ -14,12 +10,13 @@ namespace SPL.Attendance.Data.Context
 
         public DbSet<Entities.Employee> Employees => Set<Entities.Employee>();
         public DbSet<Entities.Attendance> Attendances => Set<Entities.Attendance>();
+        public DbSet<AttendanceLog> AttendanceLogs => Set<AttendanceLog>();
+        public DbSet<MonthlyAttendanceSummary> MonthlyAttendanceSummaries => Set<MonthlyAttendanceSummary>();
 
         protected override void OnModelCreating(ModelBuilder modelBuilder)
         {
             base.OnModelCreating(modelBuilder);
 
-            // ── Employee ────────────────────────────────────────────────────
             modelBuilder.Entity<Entities.Employee>(entity =>
             {
                 entity.HasIndex(e => e.EmployeeCode).IsUnique();
@@ -37,7 +34,6 @@ namespace SPL.Attendance.Data.Context
                       .OnDelete(DeleteBehavior.Cascade);
             });
 
-            // ── Attendance ──────────────────────────────────────────────────
             modelBuilder.Entity<Entities.Attendance>(entity =>
             {
                 // Enforce business rule: one record per employee per day at DB level
@@ -46,7 +42,6 @@ namespace SPL.Attendance.Data.Context
                       .HasDatabaseName("UX_Attendance_Employee_Date");
             });
 
-            // Seed default test employee so Sprint-1 Postman tests work immediately
             modelBuilder.Entity<Entities.Employee>().HasData(
                 new Entities.Employee
                 {
