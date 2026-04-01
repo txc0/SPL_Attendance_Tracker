@@ -1,7 +1,7 @@
 # SPL Attendance Management System
 
 > **Sprint 1 — Core Attendance Logic**
-> ASP.NET Core 9 · Entity Framework Core 9 · Pomelo MySQL Provider · xUnit · Swagger
+> ASP.NET Core 8 · Entity Framework Core 8 · Pomelo MySQL Provider · xUnit · Swagger
 
 ---
 
