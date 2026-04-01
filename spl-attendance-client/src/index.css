@@ -1,0 +1,47 @@
+*, *::before, *::after {
+  box-sizing: border-box;
+  margin: 0;
+  padding: 0;
+}
+
+:root {
+  --bg:        #F4F3EF;
+  --surface:   #FFFFFF;
+  --border:    #E2E0D8;
+  --text-pri:  #1A1A18;
+  --text-sec:  #6B6B65;
+  --text-hint: #A0A098;
+  --accent:    #1A6B4A;
+  --accent-lt: #EAF5EF;
+  --accent-hv: #145538;
+  --danger:    #C0392B;
+  --danger-lt: #FDECEA;
+  --warn:      #D4760A;
+  --warn-lt:   #FEF3E2;
+  --success:   #1A6B4A;
+  --radius:    12px;
+  --shadow:    0 1px 3px rgba(0,0,0,0.06), 0 4px 16px rgba(0,0,0,0.06);
+}
+
+html, body, #root {
+  height: 100%;
+}
+
+body {
+  font-family: 'DM Sans', sans-serif;
+  background: var(--bg);
+  color: var(--text-pri);
+  -webkit-font-smoothing: antialiased;
+}
+
+button {
+  font-family: 'DM Sans', sans-serif;
+  cursor: pointer;
+  border: none;
+  outline: none;
+}
+
+input {
+  font-family: 'DM Sans', sans-serif;
+  outline: none;
+}

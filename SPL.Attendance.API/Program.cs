@@ -43,7 +43,6 @@ builder.Services.AddSwaggerGen(c =>
     {
         Title       = "SPL Attendance Management System API",
         Version     = "v1",
-        Description = "Sprint 1 — Core Attendance Logic: Check-In / Check-Out / Work Hour Calculation",
         Contact     = new Microsoft.OpenApi.Models.OpenApiContact
         {
             Name  = "SPL Development Team",
@@ -58,9 +57,6 @@ builder.Services.AddSwaggerGen(c =>
         c.IncludeXmlComments(xmlPath);
 });
 
-// ══════════════════════════════════════════════════════════════════════════
-// 5. CORS (allow React dev server)
-// ══════════════════════════════════════════════════════════════════════════
 builder.Services.AddCors(options =>
 {
     options.AddPolicy("AllowReactClient", policy =>
@@ -69,12 +65,8 @@ builder.Services.AddCors(options =>
               .AllowAnyMethod());
 });
 
-// ══════════════════════════════════════════════════════════════════════════
-// BUILD
-// ══════════════════════════════════════════════════════════════════════════
 var app = builder.Build();
 
-// ── Middleware pipeline ─────────────────────────────────────────────────
 app.UseMiddleware<ExceptionHandlingMiddleware>(); // Global error handler — must be first
 
 if (app.Environment.IsDevelopment())
@@ -93,7 +85,6 @@ app.UseCors("AllowReactClient");
 app.UseAuthorization();
 app.MapControllers();
 
-// ── Auto-apply pending EF Core migrations on startup (dev convenience) ──
 using (var scope = app.Services.CreateScope())
 {
     var db = scope.ServiceProvider.GetRequiredService<SPLAttendanceDbContext>();
