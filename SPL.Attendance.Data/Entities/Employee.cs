@@ -24,6 +24,11 @@ namespace SPL.Attendance.Data.Entities
         [MaxLength(150)]
         public string? Email { get; set; }
 
+        [MaxLength(255)]
+        public string? PasswordHash { get; set; }
+
+        public bool IsSupervisor { get; set; } = false;
+
         /// <summary>
         /// Self-referencing FK: the employee's direct supervisor.
         /// </summary>

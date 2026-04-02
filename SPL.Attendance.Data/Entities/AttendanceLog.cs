@@ -32,5 +32,7 @@ namespace SPL.Attendance.Data.Entities
 
         [ForeignKey(nameof(AttendanceId))]
         public virtual Attendance Attendance { get; set; } = null!;
+
+        public bool RequiresApproval { get; set; } = false;
     }
 }

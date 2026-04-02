@@ -20,8 +20,8 @@ namespace SPL.Attendance.Tests
             // Default: employee exists and is active
             _repoMock.Setup(r => r.EmployeeExistsAsync(ValidEmployeeId))
                      .ReturnsAsync(true);
-
-            _sut = new AttendanceService(_repoMock.Object);
+            var showCauseMock = new Mock<IShowCauseRepository>();
+            _sut = new AttendanceService(_repoMock.Object, showCauseMock.Object);
         }
 
 

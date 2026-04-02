@@ -9,6 +9,7 @@ namespace SPL.Attendance.Business.Models
         public int? SupervisorId { get; set; }
         public string? SupervisorName { get; set; }
         public bool IsActive { get; set; }
+        public bool IsSupervisor { get; set; }
     }
 
     public class CreateEmployeeDto

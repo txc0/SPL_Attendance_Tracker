@@ -73,5 +73,13 @@ namespace SPL.Attendance.Data.Repositories
                 e.EmployeeCode == employeeCode &&
                 (excludeId == null || e.Id != excludeId));
         }
+
+        public async Task<Employee?> GetByEmailAsync(string email)
+        {
+            return await _context.Employees
+                .FirstOrDefaultAsync(e =>
+                    e.Email == email.ToLower().Trim() &&
+                    e.IsActive);
+        }
     }
 }

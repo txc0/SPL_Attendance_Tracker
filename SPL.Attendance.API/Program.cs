@@ -5,6 +5,9 @@ using SPL.Attendance.Business.Services;
 using SPL.Attendance.Data.Context;
 using SPL.Attendance.Data.Repositories;
 using System.Reflection;
+using Microsoft.AspNetCore.Authentication.JwtBearer;
+using Microsoft.IdentityModel.Tokens;
+using System.Text;
 
 var builder = WebApplication.CreateBuilder(args);
 
@@ -21,10 +24,37 @@ builder.Services.AddDbContext<SPLAttendanceDbContext>(options =>
 //   Data Layer
 builder.Services.AddScoped<IAttendanceRepository, AttendanceRepository>();
 builder.Services.AddScoped<IEmployeeRepository, EmployeeRepository>();
+builder.Services.AddScoped<IShowCauseRepository, ShowCauseRepository>();
+builder.Services.AddScoped<IShowCauseService, ShowCauseService>();
 
 //   Business Layer
 builder.Services.AddScoped<IAttendanceService, AttendanceService>();
 builder.Services.AddScoped<IEmployeeService, EmployeeService>();
+
+builder.Services.AddScoped<IAuthService, AuthService>();
+
+builder.Services.AddScoped<IShowCauseRepository, ShowCauseRepository>();
+builder.Services.AddScoped<IShowCauseService, ShowCauseService>();
+
+// ── JWT Authentication 
+var jwtKey = builder.Configuration["Jwt:Key"]!;
+builder.Services.AddAuthentication(JwtBearerDefaults.AuthenticationScheme)
+    .AddJwtBearer(options =>
+    {
+        options.TokenValidationParameters = new TokenValidationParameters
+        {
+            ValidateIssuer = true,
+            ValidateAudience = true,
+            ValidateLifetime = true,
+            ValidateIssuerSigningKey = true,
+            ValidIssuer = builder.Configuration["Jwt:Issuer"],
+            ValidAudience = builder.Configuration["Jwt:Audience"],
+            IssuerSigningKey = new SymmetricSecurityKey(
+                                         Encoding.UTF8.GetBytes(jwtKey))
+        };
+    });
+builder.Services.AddAuthorization();
+
 
 
 builder.Services.AddControllers()
@@ -67,7 +97,7 @@ builder.Services.AddCors(options =>
 
 var app = builder.Build();
 
-app.UseMiddleware<ExceptionHandlingMiddleware>(); // Global error handler — must be first
+app.UseMiddleware<ExceptionHandlingMiddleware>();
 
 if (app.Environment.IsDevelopment())
 {
@@ -81,8 +111,9 @@ if (app.Environment.IsDevelopment())
 }
 
 app.UseHttpsRedirection();
-app.UseCors("AllowReactClient");
 app.UseAuthorization();
+app.UseAuthentication();
+app.UseCors("AllowReactClient");
 app.MapControllers();
 
 using (var scope = app.Services.CreateScope())

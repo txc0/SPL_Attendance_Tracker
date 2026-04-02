@@ -10,9 +10,13 @@
   <ItemGroup>
     <ProjectReference Include="..\SPL.Attendance.Data\SPL.Attendance.Data.csproj" />
   </ItemGroup>
-
+	
   <ItemGroup>
     <Folder Include="SPL\Attendance\Data\Entities\" />
+  </ItemGroup>
+	
+  <ItemGroup>
+    <PackageReference Include="BCrypt.Net-Next" Version="4.0.3" />
   </ItemGroup>
 
 </Project>

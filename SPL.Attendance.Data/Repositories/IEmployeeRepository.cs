@@ -15,5 +15,6 @@ namespace SPL.Attendance.Data.Repositories
         Task<bool> DeactivateAsync(int id);
         Task<bool> ExistsAsync(int id);
         Task<bool> CodeExistsAsync(string employeeCode, int? excludeId = null);
+        Task<Employee?> GetByEmailAsync(string email);
     }
 }

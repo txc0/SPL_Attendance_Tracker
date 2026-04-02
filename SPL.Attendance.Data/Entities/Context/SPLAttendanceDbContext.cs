@@ -12,6 +12,7 @@ namespace SPL.Attendance.Data.Context
         public DbSet<Entities.Attendance> Attendances => Set<Entities.Attendance>();
         public DbSet<AttendanceLog> AttendanceLogs => Set<AttendanceLog>();
         public DbSet<MonthlyAttendanceSummary> MonthlyAttendanceSummaries => Set<MonthlyAttendanceSummary>();
+        public DbSet<ShowCauseRequest> ShowCauseRequests => Set<ShowCauseRequest>();
 
         protected override void OnModelCreating(ModelBuilder modelBuilder)
         {
@@ -52,6 +53,19 @@ namespace SPL.Attendance.Data.Context
                     IsActive = true
                 }
             );
+            // ShowCauseRequest — two FK to same Employees table
+            modelBuilder.Entity<ShowCauseRequest>(entity =>
+            {
+                entity.HasOne(s => s.Employee)
+                      .WithMany()
+                      .HasForeignKey(s => s.EmployeeId)
+                      .OnDelete(DeleteBehavior.Restrict);
+
+                entity.HasOne(s => s.Supervisor)
+                      .WithMany()
+                      .HasForeignKey(s => s.SupervisorId)
+                      .OnDelete(DeleteBehavior.Restrict);
+            });
         }
     }
 }

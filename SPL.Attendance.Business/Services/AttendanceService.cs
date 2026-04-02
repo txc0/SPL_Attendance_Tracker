@@ -8,11 +8,76 @@ namespace SPL.Attendance.Business.Services
     public class AttendanceService : IAttendanceService
     {
         private readonly IAttendanceRepository _repository;
+        private readonly IShowCauseRepository _showCauseRepo;
 
-        public AttendanceService(IAttendanceRepository repository)
+        public AttendanceService(IAttendanceRepository repository,
+                                 IShowCauseRepository showCauseRepo)
         {
             _repository = repository;
+            _showCauseRepo = showCauseRepo;
         }
+
+
+        public async Task CheckInAsync(int employeeId)
+        {
+            if (!await _repository.EmployeeExistsAsync(employeeId))
+                throw new KeyNotFoundException(
+                    $"Employee with ID {employeeId} was not found or is inactive.");
+
+            var today = DateTime.Today;
+            var now = DateTime.Now;
+
+            // Count how many log entries exist today
+            var todayLogs = await _repository.GetLogsByDateAsync(employeeId, today);
+            int totalLogsToday = todayLogs.Count;
+
+            // If 2 or more complete sessions (2+ logs) ? require show cause
+            // i.e. trying to check in a 3rd time
+            if (totalLogsToday >= 2)
+            {
+                // Check if there is already an approved show cause for today
+                var pending = await _showCauseRepo.GetPendingByEmployeeAsync(employeeId);
+
+                if (pending != null)
+                    throw new InvalidOperationException(
+                        "SHOW_CAUSE_PENDING: Your show cause request is waiting " +
+                        "for supervisor approval.");
+
+                throw new InvalidOperationException(
+                    "SHOW_CAUSE_REQUIRED: You have completed 2 sessions today. " +
+                    "Please submit a show cause reason to check in again.");
+            }
+
+            // Get or create daily attendance summary
+            var attendance = await _repository.GetAttendanceAsync(employeeId, today);
+
+            if (attendance == null)
+            {
+                attendance = new Data.Entities.Attendance
+                {
+                    EmployeeId = employeeId,
+                    AttendanceDate = today,
+                    CheckInTime = now,
+                    Status = "Present"
+                };
+                await _repository.AddCheckInAsync(attendance);
+            }
+
+            // Write log entry
+            var employeeName = await _repository.GetEmployeeNameAsync(employeeId);
+            var log = new Data.Entities.AttendanceLog
+            {
+                AttendanceId = attendance.Id,
+                EmployeeId = employeeId,
+                EmployeeName = employeeName,
+                CheckInTime = now,
+                CheckOutTime = null,
+                LogDate = today
+            };
+
+            await _repository.AddLogAsync(log);
+        }
+
 
         //public async Task CheckInAsync(int employeeId)
         //{
@@ -51,48 +116,48 @@ namespace SPL.Attendance.Business.Services
         //    await _repository.AddLogAsync(log);
         //}
 
-        public async Task CheckInAsync(int employeeId)
-        {
-            if (!await _repository.EmployeeExistsAsync(employeeId))
-                throw new KeyNotFoundException(
-                    $"Employee with ID {employeeId} was not found or is inactive.");
+        //public async Task CheckInAsync(int employeeId)
+        //{
+        //    if (!await _repository.EmployeeExistsAsync(employeeId))
+        //        throw new KeyNotFoundException(
+        //            $"Employee with ID {employeeId} was not found or is inactive.");
 
-            var today = DateTime.Today;
-            var now = DateTime.Now;
+        //    var today = DateTime.Today;
+        //    var now = DateTime.Now;
 
-            // Get or create the daily attendance summary row
-            var attendance = await _repository.GetAttendanceAsync(employeeId, today);
+        //    // Get or create the daily attendance summary row
+        //    var attendance = await _repository.GetAttendanceAsync(employeeId, today);
 
-            if (attendance == null)
-            {
-                // First check-in of the day — create the summary row
-                attendance = new Data.Entities.Attendance
-                {
-                    EmployeeId = employeeId,
-                    AttendanceDate = today,
-                    CheckInTime = now,
-                    Status = "Present"
-                };
-                await _repository.AddCheckInAsync(attendance);
-            }
-            // If attendance row already exists — do NOT throw
-            // Just allow a new log entry below
+        //    if (attendance == null)
+        //    {
+        //        // First check-in of the day ? create the summary row
+        //        attendance = new Data.Entities.Attendance
+        //        {
+        //            EmployeeId = employeeId,
+        //            AttendanceDate = today,
+        //            CheckInTime = now,
+        //            Status = "Present"
+        //        };
+        //        await _repository.AddCheckInAsync(attendance);
+        //    }
+        //    // If attendance row already exists ? do NOT throw
+        //    // Just allow a new log entry below
 
-            // Always write a new log entry for every check-in
-            var employeeName = await _repository.GetEmployeeNameAsync(employeeId);
+        //    // Always write a new log entry for every check-in
+        //    var employeeName = await _repository.GetEmployeeNameAsync(employeeId);
 
-            var log = new Data.Entities.AttendanceLog
-            {
-                AttendanceId = attendance.Id,
-                EmployeeId = employeeId,
-                EmployeeName = employeeName,
-                CheckInTime = now,
-                CheckOutTime = null,
-                LogDate = today
-            };
+        //    var log = new Data.Entities.AttendanceLog
+        //    {
+        //        AttendanceId = attendance.Id,
+        //        EmployeeId = employeeId,
+        //        EmployeeName = employeeName,
+        //        CheckInTime = now,
+        //        CheckOutTime = null,
+        //        LogDate = today
+        //    };
 
-            await _repository.AddLogAsync(log);
-        }
+        //    await _repository.AddLogAsync(log);
+        //}
 
         //public async Task CheckOutAsync(int employeeId)
         //{
@@ -124,76 +189,76 @@ namespace SPL.Attendance.Business.Services
         //}
 
         public async Task CheckOutAsync(int employeeId)
-{
-    if (!await _repository.EmployeeExistsAsync(employeeId))
-        throw new KeyNotFoundException(
-            $"Employee with ID {employeeId} was not found or is inactive.");
-
-    var today = DateTime.Today;
-    var now   = DateTime.Now;
-
-    var attendance = await _repository.GetAttendanceAsync(employeeId, today);
-
-    // Must have checked in at least once today
-    if (attendance == null)
-        throw new InvalidOperationException(
-            $"Employee {employeeId} has no check-in record for today. " +
-            "Please check in first.");
-
-    // Find the latest log entry that has no check-out yet
-    var openLog = await _repository.GetOpenLogAsync(employeeId, today);
-
-    if (openLog == null)
-        throw new InvalidOperationException(
-            $"Employee {employeeId} has no open check-in to check out from. " +
-            "Please check in first.");
-
-    // Fill check-out on the open log entry
-    openLog.CheckOutTime = now;
-    await _repository.UpdateLogAsync(openLog);
-
-    // Update the summary row with latest check-out and total work hours
-    attendance.CheckOutTime = now;
-
-    // Calculate total work hours from all completed log entries today
-    var todayLogs = await _repository.GetLogsByDateAsync(employeeId, today);
-    decimal totalHours = 0;
-
-    foreach (var log in todayLogs)
-    {
-        if (log.CheckInTime.HasValue && log.CheckOutTime.HasValue)
         {
-            totalHours += (decimal)(log.CheckOutTime.Value 
-                         - log.CheckInTime.Value).TotalHours;
+            if (!await _repository.EmployeeExistsAsync(employeeId))
+                throw new KeyNotFoundException(
+                    $"Employee with ID {employeeId} was not found or is inactive.");
+
+            var today = DateTime.Today;
+            var now = DateTime.Now;
+
+            var attendance = await _repository.GetAttendanceAsync(employeeId, today);
+
+            // Must have checked in at least once today
+            if (attendance == null)
+                throw new InvalidOperationException(
+                    $"Employee {employeeId} has no check-in record for today. " +
+                    "Please check in first.");
+
+            // Find the latest log entry that has no check-out yet
+            var openLog = await _repository.GetOpenLogAsync(employeeId, today);
+
+            if (openLog == null)
+                throw new InvalidOperationException(
+                    $"Employee {employeeId} has no open check-in to check out from. " +
+                    "Please check in first.");
+
+            // Fill check-out on the open log entry
+            openLog.CheckOutTime = now;
+            await _repository.UpdateLogAsync(openLog);
+
+            // Update the summary row with latest check-out and total work hours
+            attendance.CheckOutTime = now;
+
+            // Calculate total work hours from all completed log entries today
+            var todayLogs = await _repository.GetLogsByDateAsync(employeeId, today);
+            decimal totalHours = 0;
+
+            foreach (var log in todayLogs)
+            {
+                if (log.CheckInTime.HasValue && log.CheckOutTime.HasValue)
+                {
+                    totalHours += (decimal)(log.CheckOutTime.Value
+                                 - log.CheckInTime.Value).TotalHours;
+                }
+            }
+
+            attendance.WorkHours = Math.Round(totalHours, 2);
+            attendance.IsCompleted = true;
+
+            await _repository.UpdateCheckOutAsync(attendance);
+
+            // Update monthly count
+            var summary = await _repository.GetMonthlyAsync(
+                employeeId, now.Month, now.Year);
+
+            if (summary == null)
+            {
+                summary = new Data.Entities.MonthlyAttendanceSummary
+                {
+                    EmployeeId = employeeId,
+                    Month = now.Month,
+                    Year = now.Year,
+                    TotalDays = 1
+                };
+            }
+            else
+            {
+                summary.TotalDays += 1;
+            }
+
+            await _repository.UpsertMonthlyAsync(summary);
         }
-    }
-
-    attendance.WorkHours  = Math.Round(totalHours, 2);
-    attendance.IsCompleted = true;
-
-    await _repository.UpdateCheckOutAsync(attendance);
-
-    // Update monthly count
-    var summary = await _repository.GetMonthlyAsync(
-        employeeId, now.Month, now.Year);
-
-    if (summary == null)
-    {
-        summary = new Data.Entities.MonthlyAttendanceSummary
-        {
-            EmployeeId = employeeId,
-            Month      = now.Month,
-            Year       = now.Year,
-            TotalDays  = 1
-        };
-    }
-    else
-    {
-        summary.TotalDays += 1;
-    }
-
-    await _repository.UpsertMonthlyAsync(summary);
-}
 
 
 
@@ -211,13 +276,13 @@ namespace SPL.Attendance.Business.Services
 
         private static AttendanceRecordDto MapToDto(Data.Entities.Attendance a) => new()
         {
-            Id             = a.Id,
-            EmployeeId     = a.EmployeeId,
+            Id = a.Id,
+            EmployeeId = a.EmployeeId,
             AttendanceDate = a.AttendanceDate,
-            CheckInTime    = a.CheckInTime,
-            CheckOutTime   = a.CheckOutTime,
-            WorkHours      = a.WorkHours,
-            Status         = a.Status
+            CheckInTime = a.CheckInTime,
+            CheckOutTime = a.CheckOutTime,
+            WorkHours = a.WorkHours,
+            Status = a.Status
         };
 
         public Task<AttendanceRecordDto> GetEmployeeNameAsync(int employeeId)
