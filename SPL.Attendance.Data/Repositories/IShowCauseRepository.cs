@@ -9,5 +9,6 @@ namespace SPL.Attendance.Data.Repositories
         Task<List<ShowCauseRequest>> GetPendingBySupervisorAsync(int supervisorId);
         Task<ShowCauseRequest?> GetPendingByEmployeeAsync(int employeeId);
         Task UpdateAsync(ShowCauseRequest request);
+        Task<ShowCauseRequest?> GetApprovedByEmployeeAsync(int employeeId, string type);
     }
 }

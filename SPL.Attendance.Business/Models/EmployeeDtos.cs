@@ -18,6 +18,7 @@ namespace SPL.Attendance.Business.Models
         public string Name { get; set; } = string.Empty;
         public string? Email { get; set; }
         public int? SupervisorId { get; set; }
+        public bool IsSupervisor { get; set; } = false;
     }
 
     public class UpdateEmployeeDto
@@ -25,5 +26,6 @@ namespace SPL.Attendance.Business.Models
         public string Name { get; set; } = string.Empty;
         public string? Email { get; set; }
         public int? SupervisorId { get; set; }
+        public bool IsSupervisor { get; set; } = false;
     }
 }

@@ -54,5 +54,15 @@ namespace SPL.Attendance.Data.Repositories
             _context.ShowCauseRequests.Update(request);
             await _context.SaveChangesAsync();
         }
+
+        public async Task<ShowCauseRequest?> GetApprovedByEmployeeAsync(int employeeId, string type)
+        {
+            return await _context.ShowCauseRequests
+                .Where(s => s.EmployeeId == employeeId &&
+                            s.Type == type &&
+                            s.Status == "Approved")
+                .OrderByDescending(s => s.ReviewedAt)
+                .FirstOrDefaultAsync();
+        }
     }
 }

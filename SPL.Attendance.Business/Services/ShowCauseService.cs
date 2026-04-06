@@ -17,8 +17,7 @@ namespace SPL.Attendance.Business.Services
             _employeeRepo = employeeRepo;
         }
 
-        public async Task<ShowCauseRequestDto> SubmitAsync(
-            int employeeId, string reason)
+        public async Task<ShowCauseRequestDto> SubmitAsync(int employeeId, string reason, string type = "LOGIN")
         {
             var employee = await _employeeRepo.GetByIdAsync(employeeId)
                 ?? throw new KeyNotFoundException(
@@ -44,7 +43,8 @@ namespace SPL.Attendance.Business.Services
                 SupervisorId = employee.SupervisorId.Value,
                 Reason = reason.Trim(),
                 Status = "Pending",
-                RequestedAt = DateTime.Now
+                RequestedAt = DateTime.Now,
+                Type = type
             };
 
             var created = await _showCauseRepo.AddAsync(request);
@@ -116,5 +116,16 @@ namespace SPL.Attendance.Business.Services
                 ReviewedAt = r.ReviewedAt,
                 ReviewNote = r.ReviewNote
             };
+
+        public async Task<ShowCauseRequestDto> SubmitByEmailAsync(string email, string reason, string type)
+        {
+            var employee = await _employeeRepo.GetByEmailAsync(email)
+                ?? throw new KeyNotFoundException(
+                    $"No employee found with email '{email}'.");
+
+            return await SubmitAsync(employee.Id, reason, type);
+        }
+
+
     }
 }

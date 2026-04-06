@@ -1,4 +1,5 @@
-﻿using Microsoft.AspNetCore.Mvc;
+﻿using Microsoft.AspNetCore.Authorization;
+using Microsoft.AspNetCore.Mvc;
 using SPL.Attendance.API.DTOs;
 using SPL.Attendance.Business.Interfaces;
 
@@ -17,20 +18,35 @@ namespace SPL.Attendance.API.Controllers
         }
 
         /// <summary>Employee submits a show cause reason.</summary>
-        [HttpPost("submit")]
-        public async Task<IActionResult> Submit(
-            [FromQuery] int employeeId,
-            [FromQuery] string reason)
+        //[HttpPost("submit")]
+        //public async Task<IActionResult> Submit(
+        //    [FromQuery] int employeeId,
+        //    [FromQuery] string reason)
+        //{
+        //    var result = await _service.SubmitAsync(employeeId, reason);
+        //    return Ok(ApiResponse<object>.Ok(
+        //        "Show cause submitted. Waiting for supervisor approval.",
+        //        result));
+        //}
+
+        /// <summary>
+        /// Supervisor approves or rejects a show cause.
+        /// </summary>
+        /// 
+
+        [AllowAnonymous]
+        [HttpPost("submitbyemail")]
+        public async Task<IActionResult> SubmitByEmail(
+            [FromQuery] string email,
+            [FromQuery] string reason,
+            [FromQuery] string type = "LOGIN")
         {
-            var result = await _service.SubmitAsync(employeeId, reason);
+            var result = await _service.SubmitByEmailAsync(email, reason, type);
             return Ok(ApiResponse<object>.Ok(
                 "Show cause submitted. Waiting for supervisor approval.",
                 result));
         }
 
-        /// <summary>
-        /// Supervisor approves or rejects a show cause.
-        /// </summary>
         [HttpPost("review")]
         public async Task<IActionResult> Review(
             [FromQuery] int showCauseId,
@@ -68,5 +84,19 @@ namespace SPL.Attendance.API.Controllers
                 result == null ? "No pending requests." : "Pending request found.",
                 result));
         }
+
+        [HttpPost("submit")]
+        public async Task<IActionResult> Submit(
+            [FromQuery] int employeeId,
+            [FromQuery] string reason,
+            [FromQuery] string type = "LOGIN")
+        {
+            var result = await _service.SubmitAsync(employeeId, reason, type);
+            return Ok(ApiResponse<object>.Ok(
+                "Show cause submitted. Waiting for supervisor approval.",
+                result));
+        }
+
+
     }
 }

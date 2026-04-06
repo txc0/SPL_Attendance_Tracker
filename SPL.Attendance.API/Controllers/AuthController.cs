@@ -26,21 +26,23 @@ namespace SPL.Attendance.API.Controllers
             _logger = logger;
         }
 
-        /// <summary>Login with email and password. Returns JWT token.</summary>
+        /// <summary>Login with email and password.</summary>
         [HttpPost("login")]
-        [ProducesResponseType(typeof(ApiResponse<LoginResponse>), StatusCodes.Status200OK)]
-        [ProducesResponseType(typeof(ApiResponse<object>), StatusCodes.Status401Unauthorized)]
         public async Task<IActionResult> Login([FromBody] LoginRequest request)
         {
             if (!ModelState.IsValid)
                 return BadRequest(ApiResponse<object>.Fail("Invalid request."));
 
-            _logger.LogInformation("Login attempt for email={Email}", request.Email);
+            _logger.LogInformation("Login attempt: {Email}", request.Email);
 
-            var result = await _authService.LoginAsync(request.Email, request.Password);
+            var result = await _authService.LoginAsync(
+                request.Email, request.Password);
 
-            // Generate JWT token
-            var token = GenerateToken(result.EmployeeId, result.Name,
+            // Record check-in
+            await _authService.RecordLoginAsync(result.EmployeeId);
+
+            var token = GenerateToken(result.EmployeeId,
+                                      result.Name,
                                       result.IsSupervisor);
 
             var response = new LoginResponse
@@ -59,9 +61,30 @@ namespace SPL.Attendance.API.Controllers
         }
 
         /// <summary>
-        /// Set or reset password for an employee.
-        /// Use this endpoint to set initial passwords.
+        /// Check if employee needs show cause before logout.
+        /// Frontend calls this before logging out.
         /// </summary>
+        [HttpGet("needs-logout-approval/{employeeId:int}")]
+        public async Task<IActionResult> NeedsLogoutApproval(
+            [FromRoute] int employeeId)
+        {
+            var needs = await _authService
+                .NeedsShowCauseForLogoutAsync(employeeId);
+
+            return Ok(ApiResponse<object>.Ok(
+                needs ? "Show cause required." : "Free to logout.",
+                new { needsApproval = needs }));
+        }
+
+        /// <summary>Record check-out on logout.</summary>
+        [HttpPost("logout/{employeeId:int}")]
+        public async Task<IActionResult> Logout([FromRoute] int employeeId)
+        {
+            await _authService.RecordLogoutAsync(employeeId);
+            return Ok(ApiResponse<object>.Ok("Logged out successfully."));
+        }
+
+        /// <summary>Set password for an employee.</summary>
         [HttpPost("set-password")]
         public async Task<IActionResult> SetPassword(
             [FromQuery] int employeeId,
@@ -69,19 +92,20 @@ namespace SPL.Attendance.API.Controllers
         {
             await _authService.SetPasswordAsync(employeeId, password);
             return Ok(ApiResponse<object>.Ok(
-                $"Password set successfully for employee {employeeId}."));
+                $"Password set for employee {employeeId}."));
         }
 
-        // ── Private: JWT generation ──────────────────────
-        private string GenerateToken(int employeeId, string name,
+        // ── JWT generation ───────────────────────────────
+        private string GenerateToken(int employeeId,
+                                     string name,
                                      bool isSupervisor)
         {
             var key = new SymmetricSecurityKey(
-                            Encoding.UTF8.GetBytes(_config["Jwt:Key"]!));
-            var creds = new SigningCredentials(key,
-                            SecurityAlgorithms.HmacSha256);
+                           Encoding.UTF8.GetBytes(_config["Jwt:Key"]!));
+            var creds = new SigningCredentials(
+                           key, SecurityAlgorithms.HmacSha256);
             var expiry = DateTime.UtcNow.AddHours(
-                            double.Parse(_config["Jwt:ExpiryHours"]!));
+                           double.Parse(_config["Jwt:ExpiryHours"]!));
 
             var claims = new[]
             {

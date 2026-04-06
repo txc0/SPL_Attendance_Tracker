@@ -17,7 +17,7 @@ namespace SPL.Attendance.Business.Services
             _employeeRepo = employeeRepo;
         }
 
-        // ── GET ALL ─────────────────────────────────────────────────────────
+        // ── GET ALL 
 
         public async Task<List<EmployeeDto>> GetAllEmployeesAsync()
         {
@@ -25,7 +25,7 @@ namespace SPL.Attendance.Business.Services
             return employees.Select(MapToDto).ToList();
         }
 
-        // ── GET BY ID ───────────────────────────────────────────────────────
+        // ── GET BY ID 
 
         public async Task<EmployeeDto> GetEmployeeByIdAsync(int id)
         {
@@ -35,7 +35,7 @@ namespace SPL.Attendance.Business.Services
             return MapToDto(employee);
         }
 
-        // ── CREATE ──────────────────────────────────────────────────────────
+        // ── CREATE 
 
         public async Task<EmployeeDto> CreateEmployeeAsync(CreateEmployeeDto dto)
         {
@@ -60,6 +60,7 @@ namespace SPL.Attendance.Business.Services
                 Name         = dto.Name.Trim(),
                 Email        = dto.Email?.Trim().ToLower(),
                 SupervisorId = dto.SupervisorId,
+                IsSupervisor = dto.IsSupervisor,
                 IsActive     = true
             };
 
@@ -70,7 +71,7 @@ namespace SPL.Attendance.Business.Services
             return MapToDto(full!);
         }
 
-        // ── UPDATE ──────────────────────────────────────────────────────────
+        // ── UPDATE 
 
         public async Task<EmployeeDto> UpdateEmployeeAsync(int id, UpdateEmployeeDto dto)
         {
@@ -92,6 +93,7 @@ namespace SPL.Attendance.Business.Services
 
             employee.Name        = dto.Name.Trim();
             employee.Email       = dto.Email?.Trim().ToLower();
+            employee.IsSupervisor = dto.IsSupervisor;
             employee.SupervisorId = dto.SupervisorId;
 
             await _employeeRepo.UpdateAsync(employee);

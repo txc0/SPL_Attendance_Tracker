@@ -37,5 +37,9 @@ namespace SPL.Attendance.Data.Repositories
         Task UpsertMonthlyAsync(Data.Entities.MonthlyAttendanceSummary summary);
 
         Task ResetMonthlyAsync(int employeeId, int month, int year, string managerName);
+
+        Task<int> GetLoginCountTodayAsync(int employeeId);
+        Task IncrementLoginCountAsync(int employeeId);
+        Task IncrementLogoutCountAsync(int employeeId);
     }
 }

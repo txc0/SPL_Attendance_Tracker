@@ -33,10 +33,12 @@ namespace SPL.Attendance.API.Middleware
         {
             var (statusCode, message) = exception switch
             {
-                KeyNotFoundException  e => (HttpStatusCode.NotFound,            e.Message),
-                InvalidOperationException e => (HttpStatusCode.BadRequest,      e.Message),
-                ArgumentException     e => (HttpStatusCode.BadRequest,          e.Message),
-                _                       => (HttpStatusCode.InternalServerError, "An unexpected error occurred. Please try again later.")
+                KeyNotFoundException e => (HttpStatusCode.NotFound, e.Message),
+                InvalidOperationException e => (HttpStatusCode.BadRequest, e.Message),
+                UnauthorizedAccessException e => (HttpStatusCode.Unauthorized, e.Message),
+                ArgumentException e => (HttpStatusCode.BadRequest, e.Message),
+                _ => (HttpStatusCode.InternalServerError,
+                                                  "An unexpected error occurred.")
             };
 
             context.Response.ContentType = "application/json";

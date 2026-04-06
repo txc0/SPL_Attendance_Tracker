@@ -45,5 +45,8 @@ namespace SPL.Attendance.Data.Entities
 
         public virtual ICollection<AttendanceLog> Logs { get; set; } = new List<AttendanceLog>();
         public bool IsCompleted { get; set; }
+
+        public int LoginCount { get; set; } = 0;
+        public int LogoutCount { get; set; } = 0;
     }
 }

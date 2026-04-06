@@ -149,5 +149,66 @@ namespace SPL.Attendance.Data.Repositories
             _context.MonthlyAttendanceSummaries.Update(summary);
             await _context.SaveChangesAsync();
         }
+
+        public async Task<int> GetLoginCountTodayAsync(int employeeId)
+        {
+            var today = DateTime.Today;
+            var attendance = await GetAttendanceAsync(employeeId, today);
+            return attendance?.LoginCount ?? 0;
+        }
+
+        public async Task IncrementLoginCountAsync(int employeeId)
+        {
+            var today = DateTime.Today;
+            var attendance = await GetAttendanceAsync(employeeId, today);
+
+            if (attendance == null)
+            {
+                attendance = new Data.Entities.Attendance
+                {
+                    EmployeeId = employeeId,
+                    AttendanceDate = today,
+                    CheckInTime = DateTime.Now,
+                    Status = "Present",
+                    LoginCount = 1,
+                    LogoutCount = 0
+                };
+                await _context.Attendances.AddAsync(attendance);
+            }
+            else
+            {
+                attendance.LoginCount += 1;
+                attendance.CheckInTime = DateTime.Now;
+                _context.Attendances.Update(attendance);
+            }
+
+            await _context.SaveChangesAsync();
+        }
+
+        public async Task IncrementLogoutCountAsync(int employeeId)
+        {
+            var today = DateTime.Today;
+            var attendance = await GetAttendanceAsync(employeeId, today);
+
+            if (attendance == null) return;
+
+            attendance.LogoutCount += 1;
+            attendance.CheckOutTime = DateTime.Now;
+
+            // Calculate total work hours from all logs
+            var logs = await GetLogsByDateAsync(employeeId, today);
+            decimal totalHours = 0;
+            foreach (var log in logs)
+            {
+                if (log.CheckInTime.HasValue && log.CheckOutTime.HasValue)
+                    totalHours += (decimal)(log.CheckOutTime.Value
+                                 - log.CheckInTime.Value).TotalHours;
+            }
+            attendance.WorkHours = Math.Round(totalHours, 2);
+            attendance.IsCompleted = true;
+
+            _context.Attendances.Update(attendance);
+            await _context.SaveChangesAsync();
+        }
     }
 }

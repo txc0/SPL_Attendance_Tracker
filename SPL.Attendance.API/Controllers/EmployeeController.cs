@@ -65,6 +65,7 @@ namespace SPL.Attendance.API.Controllers
                 EmployeeCode = request.EmployeeCode,
                 Name         = request.Name,
                 Email        = request.Email,
+                IsSupervisor = request.IsSupervisor,
                 SupervisorId = request.SupervisorId
             };
 
@@ -101,6 +102,7 @@ namespace SPL.Attendance.API.Controllers
             {
                 Name         = request.Name,
                 Email        = request.Email,
+                IsSupervisor = request.IsSupervisor,
                 SupervisorId = request.SupervisorId
             };
 

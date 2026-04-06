@@ -28,11 +28,15 @@ namespace SPL.Attendance.Data.Entities
         [MaxLength(255)]
         public string? ReviewNote { get; set; }
 
-        // ── Navigation properties ────────────────────────
+        // ── Navigation properties 
         [ForeignKey(nameof(EmployeeId))]
         public virtual Employee Employee { get; set; } = null!;
 
         [ForeignKey(nameof(SupervisorId))]
         public virtual Employee Supervisor { get; set; } = null!;
+
+        /// <summary>LOGIN or LOGOUT</summary>
+        [MaxLength(10)]
+        public string Type { get; set; } = "LOGIN";
     }
 }

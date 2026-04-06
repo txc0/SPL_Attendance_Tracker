@@ -10,7 +10,7 @@ namespace SPL.Attendance.Tests
     public class AttendanceServiceTests
     {
         private readonly Mock<IAttendanceRepository> _repoMock;
-        private readonly AttendanceService _sut; // System Under Test
+        private readonly AttendanceService _sut; 
         private const int ValidEmployeeId = 1;
 
         public AttendanceServiceTests()

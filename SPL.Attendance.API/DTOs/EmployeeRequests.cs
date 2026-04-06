@@ -20,6 +20,8 @@ namespace SPL.Attendance.API.DTOs
 
         [Range(1, int.MaxValue, ErrorMessage = "SupervisorId must be a positive integer.")]
         public int? SupervisorId { get; set; }
+
+        public bool IsSupervisor { get; set; } = false;
     }
     public class UpdateEmployeeRequest
     {
@@ -31,7 +33,10 @@ namespace SPL.Attendance.API.DTOs
         [MaxLength(150, ErrorMessage = "Email cannot exceed 150 characters.")]
         public string? Email { get; set; }
 
+        public bool IsSupervisor { get; set; } = false;
+
         [Range(1, int.MaxValue, ErrorMessage = "SupervisorId must be a positive integer.")]
         public int? SupervisorId { get; set; }
+
     }
 }
