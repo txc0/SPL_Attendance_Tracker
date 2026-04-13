@@ -32,7 +32,7 @@ namespace SPL.Attendance.Business.Services
 
             if (string.IsNullOrEmpty(employee.PasswordHash))
                 throw new UnauthorizedAccessException(
-                    "Password not set. Contact your manager.");
+                    "You have to set password manusally");
 
             bool valid = BCrypt.Net.BCrypt.Verify(password, employee.PasswordHash);
             if (!valid)
@@ -118,6 +118,14 @@ namespace SPL.Attendance.Business.Services
                 openLog.CheckOutTime = DateTime.Now;
                 await _attendanceRepo.UpdateLogAsync(openLog);
             }
+
+
+            var attendance = await _attendanceRepo.GetAttendanceAsync(employeeId, today);
+            if (attendance == null) return;
+
+            attendance.LogoutCount += 1;
+            attendance.CheckOutTime = DateTime.Now;
+            attendance.IsCompleted = true;
 
             await _attendanceRepo.IncrementLogoutCountAsync(employeeId);
         }

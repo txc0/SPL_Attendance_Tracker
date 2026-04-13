@@ -45,13 +45,11 @@ namespace SPL.Attendance.Data.Repositories
                 .ToListAsync();
         }
 
-        /// <inheritdoc />
         public async Task<Entities.Attendance?> GetByDateAsync(int employeeId, DateTime date)
         {
             return await GetAttendanceAsync(employeeId, date);
         }
 
-        /// <inheritdoc />
         public async Task<bool> EmployeeExistsAsync(int employeeId)
         {
             return await _context.Employees
@@ -209,6 +207,24 @@ namespace SPL.Attendance.Data.Repositories
 
             _context.Attendances.Update(attendance);
             await _context.SaveChangesAsync();
+        }
+
+        public async Task UpdateAttendanceAsync(Entities.Attendance attendance)
+        {
+            _context.Attendances.Update(attendance);
+            await _context.SaveChangesAsync();
+        }
+
+        public async Task<List<Entities.Attendance>> GetAllByDateRangeAsync(
+    DateTime from, DateTime to)
+        {
+            return await _context.Attendances
+                .Include(a => a.Employee)
+                .Where(a => a.AttendanceDate >= from.Date &&
+                            a.AttendanceDate <= to.Date)
+                .OrderByDescending(a => a.AttendanceDate)
+                .ThenBy(a => a.Employee.Name)
+                .ToListAsync();
         }
     }
 }

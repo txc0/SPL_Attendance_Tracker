@@ -64,5 +64,14 @@ namespace SPL.Attendance.Data.Repositories
                 .OrderByDescending(s => s.ReviewedAt)
                 .FirstOrDefaultAsync();
         }
+
+        public async Task<ShowCauseRequest?> GetPendingByEmployeeAndDateAsync(int employeeId, DateTime date)
+        {
+            return await _context.ShowCauseRequests
+                .Where(s => s.EmployeeId == employeeId
+                         && s.Status == "Pending"
+                         && s.RequestedAt.Date == date.Date)
+                .FirstOrDefaultAsync();
+        }
     }
 }

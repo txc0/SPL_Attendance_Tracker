@@ -17,9 +17,9 @@ namespace SPL.Attendance.Business.Services
             _showCauseRepo = showCauseRepo;
         }
 
-
-        public async Task CheckInAsync(int employeeId)
+                public async Task CheckInAsync(int employeeId)
         {
+            //  Validate employee exists and is active
             if (!await _repository.EmployeeExistsAsync(employeeId))
                 throw new KeyNotFoundException(
                     $"Employee with ID {employeeId} was not found or is inactive.");
@@ -27,56 +27,116 @@ namespace SPL.Attendance.Business.Services
             var today = DateTime.Today;
             var now = DateTime.Now;
 
-            // Count how many log entries exist today
-            var todayLogs = await _repository.GetLogsByDateAsync(employeeId, today);
-            int totalLogsToday = todayLogs.Count;
+            //  Check if employee has attendance record for today
+            var todayAttendance = await _repository.GetAttendanceAsync(employeeId, today);
 
-            // If 2 or more complete sessions (2+ logs) ? require show cause
-            // i.e. trying to check in a 3rd time
-            if (totalLogsToday >= 2)
+            //  CONDITION 1: First sign-in of the day
+            if (todayAttendance == null)
             {
-                // Check if there is already an approved show cause for today
-                var pending = await _showCauseRepo.GetPendingByEmployeeAsync(employeeId);
-
-                if (pending != null)
-                    throw new InvalidOperationException(
-                        "SHOW_CAUSE_PENDING: Your show cause request is waiting " +
-                        "for supervisor approval.");
-
-                throw new InvalidOperationException(
-                    "SHOW_CAUSE_REQUIRED: You have completed 2 sessions today. " +
-                    "Please submit a show cause reason to check in again.");
-            }
-
-            // Get or create daily attendance summary
-            var attendance = await _repository.GetAttendanceAsync(employeeId, today);
-
-            if (attendance == null)
-            {
-                attendance = new Data.Entities.Attendance
+                // Create new attendance record
+                var attendance = new Data.Entities.Attendance
                 {
                     EmployeeId = employeeId,
                     AttendanceDate = today,
                     CheckInTime = now,
                     Status = "Present"
                 };
+
                 await _repository.AddCheckInAsync(attendance);
+                return; // ? Success - employee can proceed
             }
 
-            // Write log entry
-            var employeeName = await _repository.GetEmployeeNameAsync(employeeId);
-            var log = new Data.Entities.AttendanceLog
+            // ? CONDITION 2: Employee already signed in today
+            // Create pending approval request for multiple sign-in
+            var pendingRequest = await _showCauseRepo.GetPendingByEmployeeAndDateAsync(
+                employeeId, today);
+
+            if (pendingRequest != null)
             {
-                AttendanceId = attendance.Id,
+                // Already has a pending request
+                throw new InvalidOperationException(
+                    $"PENDING_APPROVAL: Your multiple sign-in request is awaiting supervisor approval.");
+            }
+
+            // Create new show cause request (approval workflow)
+            var showCauseRequest = new ShowCauseRequest
+            {
                 EmployeeId = employeeId,
-                EmployeeName = employeeName,
-                CheckInTime = now,
-                CheckOutTime = null,
-                LogDate = today
+                SupervisorId = 1, // Default to Admin (supervisor)
+                Reason = "Multiple sign-in request", // Auto-generated
+                Status = "Pending",
+                RequestedAt = now,
+                Type = "LOGIN"
             };
 
-            await _repository.AddLogAsync(log);
+            await _showCauseRepo.AddAsync(showCauseRequest);
+
+            // Reject sign-in until approved
+            throw new InvalidOperationException(
+                $"SHOW_CAUSE_REQUIRED: You have already signed in today. " +
+                "A supervisor approval request has been created. Please wait for approval.");
         }
+
+
+        //public async Task CheckInAsync(int employeeId)
+        //{
+        //    if (!await _repository.EmployeeExistsAsync(employeeId))
+        //        throw new KeyNotFoundException(
+        //            $"Employee with ID {employeeId} was not found or is inactive.");
+
+        //    var today = DateTime.Today;
+        //    var now = DateTime.Now;
+
+        //    // Count how many log entries exist today
+        //    var todayLogs = await _repository.GetLogsByDateAsync(employeeId, today);
+        //    int totalLogsToday = todayLogs.Count;
+
+        //    // If 2 or more complete sessions (2+ logs) ? require show cause
+        //    // i.e. trying to check in a 3rd time
+        //    if (totalLogsToday >= 2)
+        //    {
+        //        // Check if there is already an approved show cause for today
+        //        var pending = await _showCauseRepo.GetPendingByEmployeeAsync(employeeId);
+
+        //        if (pending != null)
+        //            throw new InvalidOperationException(
+        //                "SHOW_CAUSE_PENDING: Your show cause request is waiting " +
+        //                "for supervisor approval.");
+
+        //        throw new InvalidOperationException(
+        //            "SHOW_CAUSE_REQUIRED: You have completed 2 sessions today. " +
+        //            "Please submit a show cause reason to check in again.");
+        //    }
+
+        //    // Get or create daily attendance summary
+        //    var attendance = await _repository.GetAttendanceAsync(employeeId, today);
+
+        //    if (attendance == null)
+        //    {
+        //        attendance = new Data.Entities.Attendance
+        //        {
+        //            EmployeeId = employeeId,
+        //            AttendanceDate = today,
+        //            CheckInTime = now,
+        //            Status = "Present"
+        //        };
+        //        await _repository.AddCheckInAsync(attendance);
+        //    }
+
+        //    // Write log entry
+        //    var employeeName = await _repository.GetEmployeeNameAsync(employeeId);
+        //    var log = new Data.Entities.AttendanceLog
+        //    {
+        //        AttendanceId = attendance.Id,
+        //        EmployeeId = employeeId,
+        //        EmployeeName = employeeName,
+        //        CheckInTime = now,
+        //        CheckOutTime = null,
+        //        LogDate = today
+        //    };
+
+        //    await _repository.AddLogAsync(log);
+        //}
 
 
         //public async Task CheckInAsync(int employeeId)
@@ -313,5 +373,32 @@ namespace SPL.Attendance.Business.Services
             LogDate = l.LogDate,
             CreatedAt = l.CreatedAt
         };
+
+        public async Task<List<AttendanceRecordDto>> GetAllAttendanceAsync(string filter)
+        {
+            var today = DateTime.Today;
+            DateTime from;
+            DateTime to = today;
+
+            switch (filter.ToLower())
+            {
+                case "week":
+                    int diff = (7 + (today.DayOfWeek - DayOfWeek.Monday)) % 7;
+                    from = today.AddDays(-diff);
+                    break;
+                case "month":
+                    from = new DateTime(today.Year, today.Month, 1);
+                    break;
+                default:
+                    from = today;
+                    break;
+            }
+
+            var records = await _repository.GetAllByDateRangeAsync(from, to);
+
+            return records.Select(MapToDto).ToList();
+        }
+
+
     }
 }

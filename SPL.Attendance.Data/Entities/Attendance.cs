@@ -39,7 +39,7 @@ namespace SPL.Attendance.Data.Entities
         [MaxLength(20)]
         public string Status { get; set; } = "Present";
 
-        // ── Navigation property ──────────────────────────────────────────────
+        // ── Navigation property 
         [ForeignKey(nameof(EmployeeId))]
         public virtual Employee Employee { get; set; } = null!;
 

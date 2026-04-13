@@ -1,3 +1,4 @@
+using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
 using SPL.Attendance.API.DTOs;
 using SPL.Attendance.Business.Interfaces;
@@ -20,6 +21,22 @@ namespace SPL.Attendance.API.Controllers
             _logger  = logger;
         }
 
+        //[HttpPost("checkin")]
+        //[ProducesResponseType(typeof(ApiResponse<object>), StatusCodes.Status200OK)]
+        //[ProducesResponseType(typeof(ApiResponse<object>), StatusCodes.Status400BadRequest)]
+        //[ProducesResponseType(typeof(ApiResponse<object>), StatusCodes.Status404NotFound)]
+        //public async Task<IActionResult> CheckIn([FromBody] CheckInRequest request)
+        //{
+        //    if (!ModelState.IsValid)
+        //        return BadRequest(ApiResponse<object>.Fail("Invalid request payload."));
+
+        //    _logger.LogInformation("Check-in request received for EmployeeId={EmployeeId}", request.EmployeeId);
+
+        //    await _service.CheckInAsync(request.EmployeeId);
+
+        //    return Ok(ApiResponse<object>.Ok($"Employee {request.EmployeeId} checked in successfully at {DateTime.Now:HH:mm:ss}."));
+        //}
+
         [HttpPost("checkin")]
         [ProducesResponseType(typeof(ApiResponse<object>), StatusCodes.Status200OK)]
         [ProducesResponseType(typeof(ApiResponse<object>), StatusCodes.Status400BadRequest)]
@@ -29,11 +46,38 @@ namespace SPL.Attendance.API.Controllers
             if (!ModelState.IsValid)
                 return BadRequest(ApiResponse<object>.Fail("Invalid request payload."));
 
-            _logger.LogInformation("Check-in request received for EmployeeId={EmployeeId}", request.EmployeeId);
+            _logger.LogInformation("Check-in request for EmployeeId={EmployeeId}", request.EmployeeId);
 
-            await _service.CheckInAsync(request.EmployeeId);
+            try
+            {
+                await _service.CheckInAsync(request.EmployeeId);
 
-            return Ok(ApiResponse<object>.Ok($"Employee {request.EmployeeId} checked in successfully at {DateTime.Now:HH:mm:ss}."));
+                //  First sign-in successful
+                return Ok(ApiResponse<object>.Ok(
+                    "Checked in successfully.",
+                    new { timestamp = DateTime.Now }));
+            }
+            catch (InvalidOperationException ex) when (ex.Message.Contains("SHOW_CAUSE_REQUIRED"))
+            {
+                //  Multiple sign-in - awaiting approval
+                return BadRequest(ApiResponse<object>.Fail(
+                    "Your multiple sign-in request is awaiting supervisor approval."));
+            }
+            catch (InvalidOperationException ex) when (ex.Message.Contains("PENDING_APPROVAL"))
+            {
+                //  Already has pending request
+                return BadRequest(ApiResponse<object>.Fail(
+                    "Your approval request is still pending. Please wait for supervisor review."));
+            }
+            catch (KeyNotFoundException ex)
+            {
+                return NotFound(ApiResponse<object>.Fail(ex.Message));
+            }
+            catch (Exception ex)
+            {
+                _logger.LogError(ex, "Error during check-in");
+                return StatusCode(500, ApiResponse<object>.Fail("An error occurred during check-in."));
+            }
         }
 
 
@@ -110,5 +154,17 @@ namespace SPL.Attendance.API.Controllers
                 $"{logs.Count} log(s) found for employee {employeeId} on {parsedDate:dd-MMM-yyyy}.",
                 logs));
         }
+
+        [AllowAnonymous]
+        [HttpGet("all")]
+        public async Task<IActionResult> GetAllAttendance(
+       [FromQuery] string filter = "today")
+        {
+            var records = await _service.GetAllAttendanceAsync(filter);
+            return Ok(ApiResponse<object>.Ok(
+                $"Attendance records.", records));
+        }
+
+
     }
 }

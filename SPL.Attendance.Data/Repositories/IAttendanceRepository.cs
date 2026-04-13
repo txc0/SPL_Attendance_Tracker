@@ -41,5 +41,10 @@ namespace SPL.Attendance.Data.Repositories
         Task<int> GetLoginCountTodayAsync(int employeeId);
         Task IncrementLoginCountAsync(int employeeId);
         Task IncrementLogoutCountAsync(int employeeId);
+
+        Task UpdateAttendanceAsync(Entities.Attendance attendance);
+
+        Task<List<Entities.Attendance>> GetAllByDateRangeAsync(DateTime from, DateTime to);
+
     }
 }

@@ -68,7 +68,7 @@ namespace SPL.Attendance.Data.Migrations
                 b.Navigation("Supervisor");
                 b.Navigation("Attendances");
             });
-#pragma warning restore 612, 618
+        #pragma warning restore 612, 618
         }
     }
 }
