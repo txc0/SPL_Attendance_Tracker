@@ -7,11 +7,13 @@ namespace SPL.Attendance.Business.Models
     public class AttendanceRecordDto
     {
         public int Id { get; set; }
+        public string EmployeeName { get; set; } = string.Empty;
         public int EmployeeId { get; set; }
         public DateTime AttendanceDate { get; set; }
         public DateTime? CheckInTime { get; set; }
         public DateTime? CheckOutTime { get; set; }
         public decimal? WorkHours { get; set; }
         public string Status { get; set; } = string.Empty;
+
     }
 }

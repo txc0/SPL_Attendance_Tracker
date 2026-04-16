@@ -9,72 +9,101 @@ namespace SPL.Attendance.Business.Services
     {
         private readonly IAttendanceRepository _repository;
         private readonly IShowCauseRepository _showCauseRepo;
+        private readonly IEmployeeRepository _employeeRepo;
 
-        public AttendanceService(IAttendanceRepository repository,
-                                 IShowCauseRepository showCauseRepo)
+        public AttendanceService(
+            IAttendanceRepository repository,
+            IShowCauseRepository showCauseRepo,
+            IEmployeeRepository employeeRepo)
         {
             _repository = repository;
             _showCauseRepo = showCauseRepo;
+            _employeeRepo = employeeRepo;
         }
 
-                public async Task CheckInAsync(int employeeId)
+        public async Task CheckInAsync(int employeeId)
         {
-            //  Validate employee exists and is active
-            if (!await _repository.EmployeeExistsAsync(employeeId))
+            var employee = await _employeeRepo.GetByIdAsync(employeeId);
+            if (employee == null || !employee.IsActive)
                 throw new KeyNotFoundException(
                     $"Employee with ID {employeeId} was not found or is inactive.");
 
             var today = DateTime.Today;
             var now = DateTime.Now;
 
-            //  Check if employee has attendance record for today
             var todayAttendance = await _repository.GetAttendanceAsync(employeeId, today);
 
-            //  CONDITION 1: First sign-in of the day
+            // From 2nd sign-in onward, non-supervisors need one fresh approval per extra sign-in.
+            if (!employee.IsSupervisor && todayAttendance != null && todayAttendance.LoginCount >= 1)
+            {
+                var approved = await _showCauseRepo.GetApprovedByEmployeeAsync(employeeId, "LOGIN");
+                var approvedForThisAttempt = approved != null
+                    && approved.ReviewedAt.HasValue
+                    && approved.ReviewedAt.Value.Date == today
+                    && approved.ReviewedAt.Value > (todayAttendance.CheckInTime ?? DateTime.MinValue);
+
+                if (!approvedForThisAttempt)
+                {
+                    var pendingToday = await _showCauseRepo
+                        .GetPendingByEmployeeAndDateAsync(employeeId, today);
+
+                    if (pendingToday == null)
+                    {
+                        var request = new ShowCauseRequest
+                        {
+                            EmployeeId = employeeId,
+                            SupervisorId = employee.SupervisorId ?? 1,
+                            Reason = "Multiple login request",
+                            Status = "Pending",
+                            RequestedAt = now,
+                            Type = "LOGIN"
+                        };
+
+                        await _showCauseRepo.AddAsync(request);
+
+                        throw new InvalidOperationException(
+                            "SHOW_CAUSE_REQUIRED: Please submit show cause and wait for admin approval.");
+                    }
+
+                    throw new InvalidOperationException(
+                        "PENDING_APPROVAL: Your approval request is still pending.");
+                }
+            }
+
             if (todayAttendance == null)
             {
-                // Create new attendance record
-                var attendance = new Data.Entities.Attendance
+                todayAttendance = new Data.Entities.Attendance
                 {
                     EmployeeId = employeeId,
                     AttendanceDate = today,
                     CheckInTime = now,
-                    Status = "Present"
+                    Status = "Present",
+                    LoginCount = 1,
+                    LogoutCount = 0
                 };
 
-                await _repository.AddCheckInAsync(attendance);
-                return; // ? Success - employee can proceed
+                await _repository.AddCheckInAsync(todayAttendance);
+            }
+            else
+            {
+                todayAttendance.LoginCount += 1;
+                todayAttendance.CheckInTime = now;
+                todayAttendance.IsCompleted = false;
+                await _repository.UpdateAttendanceAsync(todayAttendance);
             }
 
-            // ? CONDITION 2: Employee already signed in today
-            // Create pending approval request for multiple sign-in
-            var pendingRequest = await _showCauseRepo.GetPendingByEmployeeAndDateAsync(
-                employeeId, today);
-
-            if (pendingRequest != null)
+            var employeeName = await _repository.GetEmployeeNameAsync(employeeId);
+            var log = new Data.Entities.AttendanceLog
             {
-                // Already has a pending request
-                throw new InvalidOperationException(
-                    $"PENDING_APPROVAL: Your multiple sign-in request is awaiting supervisor approval.");
-            }
-
-            // Create new show cause request (approval workflow)
-            var showCauseRequest = new ShowCauseRequest
-            {
+                AttendanceId = todayAttendance.Id,
                 EmployeeId = employeeId,
-                SupervisorId = 1, // Default to Admin (supervisor)
-                Reason = "Multiple sign-in request", // Auto-generated
-                Status = "Pending",
-                RequestedAt = now,
-                Type = "LOGIN"
+                EmployeeName = employeeName,
+                CheckInTime = now,
+                CheckOutTime = null,
+                LogDate = today
             };
 
-            await _showCauseRepo.AddAsync(showCauseRequest);
-
-            // Reject sign-in until approved
-            throw new InvalidOperationException(
-                $"SHOW_CAUSE_REQUIRED: You have already signed in today. " +
-                "A supervisor approval request has been created. Please wait for approval.");
+            await _repository.AddLogAsync(log);
         }
 
 
@@ -338,6 +367,7 @@ namespace SPL.Attendance.Business.Services
         {
             Id = a.Id,
             EmployeeId = a.EmployeeId,
+            EmployeeName = a.Employee?.Name ?? string.Empty,
             AttendanceDate = a.AttendanceDate,
             CheckInTime = a.CheckInTime,
             CheckOutTime = a.CheckOutTime,

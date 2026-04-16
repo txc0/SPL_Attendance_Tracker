@@ -8,6 +8,7 @@ using SPL.Attendance.Business.Services;
 using SPL.Attendance.Data.Context;
 using SPL.Attendance.Data.Repositories;
 using System.Reflection;
+using System.Security.Claims;
 using System.Text;
 
 var builder = WebApplication.CreateBuilder(args);
@@ -34,9 +35,6 @@ builder.Services.AddScoped<IEmployeeService, EmployeeService>();
 
 builder.Services.AddScoped<IAuthService, AuthService>();
 
-builder.Services.AddScoped<IShowCauseRepository, ShowCauseRepository>();
-builder.Services.AddScoped<IShowCauseService, ShowCauseService>();
-
 // ── JWT Authentication 
 var jwtKey = builder.Configuration["Jwt:Key"]!;
 builder.Services.AddAuthentication(JwtBearerDefaults.AuthenticationScheme)
@@ -50,6 +48,7 @@ builder.Services.AddAuthentication(JwtBearerDefaults.AuthenticationScheme)
             ValidateIssuerSigningKey = true,
             ValidIssuer = builder.Configuration["Jwt:Issuer"],
             ValidAudience = builder.Configuration["Jwt:Audience"],
+            RoleClaimType = ClaimTypes.Role,
             IssuerSigningKey = new SymmetricSecurityKey(
                                          Encoding.UTF8.GetBytes(jwtKey))
         };
@@ -119,7 +118,8 @@ builder.Services.AddCors(options =>
     options.AddPolicy("AllowReactClient", policy =>
         policy.WithOrigins("http://localhost:3000", "http://localhost:5173")
               .AllowAnyHeader()
-              .AllowAnyMethod());
+              .AllowAnyMethod()
+              .AllowCredentials());
 });
 
 var app = builder.Build();
@@ -138,9 +138,9 @@ if (app.Environment.IsDevelopment())
 }
 
 app.UseHttpsRedirection();
-app.UseAuthorization();
-app.UseAuthentication();
 app.UseCors("AllowReactClient");
+app.UseAuthentication();
+app.UseAuthorization();
 app.MapControllers();
 
 using (var scope = app.Services.CreateScope())

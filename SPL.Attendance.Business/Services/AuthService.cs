@@ -39,35 +39,43 @@ namespace SPL.Attendance.Business.Services
                 throw new UnauthorizedAccessException(
                     "Invalid email or password.");
 
-            // Check if this is not the first login today
-            var loginCount = await _attendanceRepo
-                .GetLoginCountTodayAsync(employee.Id);
+            var loginCount = await _attendanceRepo.GetLoginCountTodayAsync(employee.Id);
 
-            if (loginCount >= 1 && !employee.IsSupervisor)
+            // From 2nd login attempt onward, require admin approval for non-supervisors.
+            if (!employee.IsSupervisor && loginCount >= 1)
             {
+                var todayAttendance = await _attendanceRepo
+                    .GetAttendanceAsync(employee.Id, DateTime.Today);
 
-                // Check if there is an approved show cause for login
                 var approved = await _showCauseRepo
                     .GetApprovedByEmployeeAsync(employee.Id, "LOGIN");
 
-                // Check if approved today
-                bool approvedToday = approved != null &&
-                    approved.ReviewedAt?.Date == DateTime.Today;
+                var approvedForThisAttempt = approved != null
+                    && approved.ReviewedAt.HasValue
+                    && approved.ReviewedAt.Value.Date == DateTime.Today
+                    && approved.ReviewedAt.Value > (todayAttendance?.CheckInTime ?? DateTime.MinValue);
 
-                if (!approvedToday)
+                if (!approvedForThisAttempt)
                 {
-                    // Check if pending
-                    var pending = await _showCauseRepo
-                        .GetPendingByEmployeeAsync(employee.Id);
+                    var pendingToday = await _showCauseRepo
+                        .GetPendingByEmployeeAndDateAsync(employee.Id, DateTime.Today);
 
-                    if (pending != null)
-                        throw new UnauthorizedAccessException(
-                            "SHOW_CAUSE_PENDING: Your request is waiting " +
-                            "for supervisor approval.");
+                    if (pendingToday == null)
+                    {
+                        var request = new ShowCauseRequest
+                        {
+                            EmployeeId = employee.Id,
+                            SupervisorId = employee.SupervisorId ?? 1,
+                            Reason = "Multiple login request",
+                            Status = "Pending",
+                            RequestedAt = DateTime.Now,
+                            Type = "LOGIN"
+                        };
 
-                    throw new UnauthorizedAccessException(
-                        "SHOW_CAUSE_REQUIRED: You need supervisor approval " +
-                        "to login again today.");
+                        await _showCauseRepo.AddAsync(request);
+                    }
+
+                    throw new UnauthorizedAccessException("Please wait for admin approval.");
                 }
             }
 

@@ -23,10 +23,7 @@ namespace SPL.Attendance.Business.Services
                 ?? throw new KeyNotFoundException(
                     $"Employee {employeeId} not found.");
 
-            if (employee.SupervisorId == null)
-                throw new InvalidOperationException(
-                    "You have no supervisor assigned. " +
-                    "Contact HR to assign a supervisor.");
+            var supervisorId = employee.SupervisorId ?? 1;
 
             // Check no pending request already exists
             var existing = await _showCauseRepo
@@ -40,7 +37,7 @@ namespace SPL.Attendance.Business.Services
             var request = new ShowCauseRequest
             {
                 EmployeeId = employeeId,
-                SupervisorId = employee.SupervisorId.Value,
+                SupervisorId = supervisorId,
                 Reason = reason.Trim(),
                 Status = "Pending",
                 RequestedAt = DateTime.Now,
@@ -53,7 +50,7 @@ namespace SPL.Attendance.Business.Services
         }
 
         public async Task ReviewAsync(int showCauseId, int supervisorId,
-                                      bool isApproved, string? reviewNote)
+                                      bool isApproved , string? reviewNote)
         {
             var request = await _showCauseRepo.GetByIdAsync(showCauseId)
                 ?? throw new KeyNotFoundException(

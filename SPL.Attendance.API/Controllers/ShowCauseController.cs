@@ -3,6 +3,7 @@ using Microsoft.AspNetCore.Mvc;
 using SPL.Attendance.API.DTOs;
 using SPL.Attendance.Business.Interfaces;
 using SPL.Attendance.Business.Models;
+using System.Security.Claims;
 
 namespace SPL.Attendance.API.Controllers
 {
@@ -50,6 +51,38 @@ namespace SPL.Attendance.API.Controllers
         }
 
         /// <summary>
+        /// Compatibility endpoint for query-string based review calls from frontend.
+        /// </summary>
+        [HttpPost("review")]
+        [Authorize(Roles = "Admin")]
+        public async Task<IActionResult> ReviewRequestByQuery(
+            [FromQuery] int showCauseId,
+            [FromQuery] int supervisorId,
+            [FromQuery] bool isApproved,
+            [FromQuery] string? reviewNote)
+        {
+            if (showCauseId <= 0)
+                return BadRequest(ApiResponse<object>.Fail("Valid showCauseId is required."));
+
+            if (supervisorId <= 0)
+                return BadRequest(ApiResponse<object>.Fail("Valid supervisorId is required."));
+
+            try
+            {
+                await _service.ReviewAsync(showCauseId, supervisorId, isApproved, reviewNote);
+
+                return Ok(ApiResponse<object>.Ok(
+                    isApproved ? "Request approved." : "Request rejected.",
+                    new { requestId = showCauseId, status = isApproved ? "Approved" : "Rejected" }));
+            }
+            catch (Exception ex)
+            {
+                _logger.LogError(ex, "Error reviewing show cause RequestId={RequestId}", showCauseId);
+                return BadRequest(ApiResponse<object>.Fail(ex.Message));
+            }
+        }
+
+        /// <summary>
         /// Employee submits a show cause request using email.
         /// </summary>
         [AllowAnonymous]
@@ -82,7 +115,7 @@ namespace SPL.Attendance.API.Controllers
         /// Supervisor approves or rejects a show cause request.
         /// </summary>
         [HttpPost("review/{requestId}")]
-        [Authorize(Roles = "Admin")]
+        //[Authorize(Roles = "Admin")]
         public async Task<IActionResult> ReviewRequest(
             int requestId,
             [FromBody] ReviewShowCauseRequest review)
@@ -97,11 +130,11 @@ namespace SPL.Attendance.API.Controllers
 
             try
             {
-                // ✅ Convert status string to boolean
+                //  Convert status string to boolean
                 bool isApproved = review.Status == "Approved";
 
                 // Get supervisorId from claims (or default to 1 for now)
-                int supervisorId = int.TryParse(User.FindFirst("id")?.Value, out int id) ? id : 1;
+                int supervisorId = int.TryParse(User.FindFirst(ClaimTypes.NameIdentifier)?.Value, out int id) ? id : 1;
 
                 _logger.LogInformation("Reviewing show cause RequestId={RequestId}, Status={Status}, SupervisorId={SupervisorId}",
                     requestId, review.Status, supervisorId);
@@ -133,8 +166,8 @@ namespace SPL.Attendance.API.Controllers
         {
             try
             {
-                // ✅ Get supervisorId from claims (or default to 1 for now)
-                int supervisorId = int.TryParse(User.FindFirst("id")?.Value, out int id) ? id : 1;
+                // Get supervisorId from claims (or default to 1 for now)
+                int supervisorId = int.TryParse(User.FindFirst(ClaimTypes.NameIdentifier)?.Value, out int id) ? id : 1;
 
                 _logger.LogInformation("Fetching pending requests for SupervisorId={SupervisorId}", supervisorId);
 
@@ -177,6 +210,16 @@ namespace SPL.Attendance.API.Controllers
                 _logger.LogError(ex, "Error fetching pending request for EmployeeId={EmployeeId}", employeeId);
                 return BadRequest(ApiResponse<object>.Fail(ex.Message));
             }
+        }
+
+        [AllowAnonymous]
+        [HttpGet("pending/{supervisorId:int}")]
+        public async Task<IActionResult> GetPending(
+    [FromRoute] int supervisorId)
+        {
+            var list = await _service.GetPendingForSupervisorAsync(supervisorId);
+            return Ok(ApiResponse<object>.Ok(
+                $"{list.Count} pending request(s).", list));
         }
     }
 }

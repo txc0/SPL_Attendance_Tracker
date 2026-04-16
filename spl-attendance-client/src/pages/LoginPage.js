@@ -36,8 +36,11 @@ export default function LoginPage() {
       // Successful login
       login({ id: emp.id, name: emp.name, employeeCode: emp.employeeCode });
     } catch (err) {
-      if (err.response?.status === 404) {
-        showToast('Employee ID not found. Please try again.');
+      const msg = err.response?.data?.message || '';
+      if (msg.startsWith('SHOW_CAUSE_REQUIRED')) {
+        setMode('showcause');
+      } else if (msg.startsWith('SHOW_CAUSE_PENDING') || msg.includes('admin approval')) {
+        setMode('pending'); 
       } else {
         showToast('Cannot connect to server. Make sure the API is running.');
       }

@@ -15,6 +15,7 @@ namespace SPL.Attendance.Tests
     {
         private readonly Mock<IAttendanceRepository> _repoMock;
         private readonly Mock<IShowCauseRepository> _showCauseMock;
+        private readonly Mock<IEmployeeRepository> _employeeRepoMock;
         private readonly AttendanceService _sut;
         private const int ValidEmployeeId = 1;
 
@@ -22,12 +23,21 @@ namespace SPL.Attendance.Tests
         {
             _repoMock = new Mock<IAttendanceRepository>();
             _showCauseMock = new Mock<IShowCauseRepository>();
+            _employeeRepoMock = new Mock<IEmployeeRepository>();
 
-            // Default: employee exists and is active
-            _repoMock.Setup(r => r.EmployeeExistsAsync(ValidEmployeeId))
-                     .ReturnsAsync(true);
+            _employeeRepoMock.Setup(r => r.GetByIdAsync(ValidEmployeeId))
+                .ReturnsAsync(new Employee
+                {
+                    Id = ValidEmployeeId,
+                    Name = "Test Employee",
+                    IsActive = true,
+                    IsSupervisor = false
+                });
 
-            _sut = new AttendanceService(_repoMock.Object, _showCauseMock.Object);
+            _sut = new AttendanceService(
+                _repoMock.Object,
+                _showCauseMock.Object,
+                _employeeRepoMock.Object);
         }
 
         // ????????????????????????????????????????????????????????????
@@ -80,12 +90,15 @@ namespace SPL.Attendance.Tests
             _repoMock.Setup(r => r.GetAttendanceAsync(ValidEmployeeId, DateTime.Today))
                      .ReturnsAsync(existingAttendance);
 
+            _showCauseMock.Setup(r => r.GetApprovedByEmployeeAsync(ValidEmployeeId, "LOGIN"))
+                .ReturnsAsync((Data.Entities.ShowCauseRequest?)null);
+
             // No pending request exists yet
             _showCauseMock.Setup(r => r.GetPendingByEmployeeAndDateAsync(ValidEmployeeId, DateTime.Today))
                           .ReturnsAsync((Data.Entities.ShowCauseRequest?)null);
 
             _showCauseMock.Setup(r => r.AddAsync(It.IsAny<Data.Entities.ShowCauseRequest>()))
-                          .Returns((Task<ShowCauseRequest>)Task.CompletedTask);
+                .ReturnsAsync(new Data.Entities.ShowCauseRequest());
 
             // Act
             var act = async () => await _sut.CheckInAsync(ValidEmployeeId);
@@ -129,6 +142,9 @@ namespace SPL.Attendance.Tests
             _repoMock.Setup(r => r.GetAttendanceAsync(ValidEmployeeId, DateTime.Today))
                      .ReturnsAsync(existingAttendance);
 
+            _showCauseMock.Setup(r => r.GetApprovedByEmployeeAsync(ValidEmployeeId, "LOGIN"))
+                .ReturnsAsync((Data.Entities.ShowCauseRequest?)null);
+
             _showCauseMock.Setup(r => r.GetPendingByEmployeeAndDateAsync(ValidEmployeeId, DateTime.Today))
                           .ReturnsAsync(pendingRequest);
 
@@ -155,8 +171,8 @@ namespace SPL.Attendance.Tests
         {
             // Arrange: Employee doesn't exist
             const int unknownEmployeeId = 9999;
-            _repoMock.Setup(r => r.EmployeeExistsAsync(unknownEmployeeId))
-                     .ReturnsAsync(false);
+            _employeeRepoMock.Setup(r => r.GetByIdAsync(unknownEmployeeId))
+                .ReturnsAsync((Employee?)null);
 
             // Act
             var act = async () => await _sut.CheckInAsync(unknownEmployeeId);

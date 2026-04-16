@@ -1,4 +1,5 @@
 ﻿using Microsoft.AspNetCore.Mvc;
+using Microsoft.AspNetCore.Authorization;
 using Microsoft.IdentityModel.Tokens;
 using SPL.Attendance.API.DTOs;
 using SPL.Attendance.Business.Interfaces;
@@ -35,67 +36,89 @@ namespace SPL.Attendance.API.Controllers
 
             _logger.LogInformation("Login attempt: {Email}", request.Email);
 
-            var result = await _authService.LoginAsync(
-                request.Email, request.Password);
-
-            // Record check-in
-            await _authService.RecordLoginAsync(result.EmployeeId);
-
-            var token = GenerateToken(result.EmployeeId,
-                                      result.Name,
-                                      result.IsSupervisor);
-
-            var response = new LoginResponse
+            try
             {
-                EmployeeId = result.EmployeeId,
-                Name = result.Name,
-                Email = result.Email,
-                EmployeeCode = result.EmployeeCode,
-                IsSupervisor = result.IsSupervisor,
-                SupervisorId = result.SupervisorId,
-                Token = token
-            };
+                var result = await _authService.LoginAsync(
+                    request.Email, request.Password);
 
-            return Ok(ApiResponse<LoginResponse>.Ok(
-                $"Welcome back, {result.Name}!", response));
+                await _authService.RecordLoginAsync(result.EmployeeId);
+
+                var token = GenerateToken(result.EmployeeId,
+                                          result.Name,
+                                          result.IsSupervisor);
+
+                var response = new LoginResponse
+                {
+                    EmployeeId = result.EmployeeId,
+                    Name = result.Name,
+                    Email = result.Email,
+                    EmployeeCode = result.EmployeeCode,
+                    IsSupervisor = result.IsSupervisor,
+                    SupervisorId = result.SupervisorId,
+                    Token = token
+                };
+
+                return Ok(ApiResponse<LoginResponse>.Ok(
+                    $"Welcome back, {result.Name}!", response));
+            }
+            catch (UnauthorizedAccessException ex) when (ex.Message == "Please wait for admin approval.")
+            {
+                return Unauthorized(ApiResponse<object>.Fail(
+                    "SHOW_CAUSE_PENDING: Please wait for admin approval."));
+            }
+            catch (UnauthorizedAccessException ex)
+            {
+                return Unauthorized(ApiResponse<object>.Fail(ex.Message));
+            }
         }
 
         /// <summary>
         /// Check if employee needs show cause before logout.
         /// Frontend calls this before logging out.
         /// </summary>
+        [Authorize(Roles = "Admin,Employee")]
         [HttpGet("needs-logout-approval/{employeeId:int}")]
-        public async Task<IActionResult> NeedsLogoutApproval(
-            [FromRoute] int employeeId)
+        public async Task<IActionResult> NeedsLogoutApproval([FromRoute] int employeeId)
         {
-            var needs = await _authService
-                .NeedsShowCauseForLogoutAsync(employeeId);
+            if (!User.IsInRole("Admin"))
+            {
+                var currentUserId = User.FindFirstValue(ClaimTypes.NameIdentifier);
+                if (currentUserId != employeeId.ToString())
+                    return Forbid();
+            }
 
+            var needs = await _authService.NeedsShowCauseForLogoutAsync(employeeId);
             return Ok(ApiResponse<object>.Ok(
                 needs ? "Show cause required." : "Free to logout.",
                 new { needsApproval = needs }));
         }
 
         /// <summary>Record check-out on logout.</summary>
+        [Authorize(Roles = "Admin,Employee")]
         [HttpPost("logout/{employeeId:int}")]
         public async Task<IActionResult> Logout([FromRoute] int employeeId)
         {
+            if (!User.IsInRole("Admin"))
+            {
+                var currentUserId = User.FindFirstValue(ClaimTypes.NameIdentifier);
+                if (currentUserId != employeeId.ToString())
+                    return Forbid();
+            }
+
             await _authService.RecordLogoutAsync(employeeId);
             return Ok(ApiResponse<object>.Ok("Logged out successfully."));
         }
 
         /// <summary>Set password for an employee.</summary>
+        [Authorize(Roles = "Admin")]
         [HttpPost("set-password")]
-        public async Task<IActionResult> SetPassword(
-            [FromQuery] int employeeId,
-            [FromQuery] string password)
+        public async Task<IActionResult> SetPassword([FromQuery] int employeeId, [FromQuery] string password)
         {
             await _authService.SetPasswordAsync(employeeId, password);
-            return Ok(ApiResponse<object>.Ok(
-                $"Password set for employee {employeeId}."));
+            return Ok(ApiResponse<object>.Ok($"Password set for employee {employeeId}."));
         }
 
-        // ── JWT generation ───────────────────────────────
+        // ── JWT generation
         private string GenerateToken(int employeeId,
                                      string name,
                                      bool isSupervisor)
@@ -111,6 +134,7 @@ namespace SPL.Attendance.API.Controllers
             {
                 new Claim(ClaimTypes.NameIdentifier, employeeId.ToString()),
                 new Claim(ClaimTypes.Name,           name),
+                new Claim(ClaimTypes.Role,           isSupervisor ? "Admin" : "Employee"),
                 new Claim("IsSupervisor",            isSupervisor.ToString()),
             };
 
