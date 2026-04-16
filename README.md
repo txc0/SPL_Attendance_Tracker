@@ -248,9 +248,11 @@ The React app proxies API requests to `https://localhost:7001` (see `package.jso
 | POST | `/api/auth/login` | Login with email + password | — |
 | GET | `/api/auth/needs-logout-approval/{employeeId}` | Check if logout needs approval | Bearer |
 | POST | `/api/auth/logout/{employeeId}` | Record logout | Bearer |
-| POST | `/api/auth/set-password` | Deprecated: current API uses query params; refactor to JSON body before use | Admin |
 
-> Security warning: the current API expects query parameters for `set-password`, which is insecure because credentials can be logged. **Do not use this endpoint in production**; refactor it to accept a JSON body (e.g., `{ "employeeId": 1, "password": "..." }`) or remove it until fixed.
+#### Deprecated / Unsafe Endpoints
+
+- `POST /api/auth/set-password` — uses query parameters for credentials. **Do not use in production**; refactor to a JSON body (e.g., `{ "employeeId": 1, "password": "..." }`) or remove it until fixed.
+- `POST /api/showcause/submit` and `POST /api/showcause/submitbyemail` — currently accept sensitive inputs via query parameters. Refactor to JSON request bodies before production use.
 
 ### Employees
 
