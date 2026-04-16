@@ -151,7 +151,7 @@ SPL.AttendanceManagementSystem.sln
 │   └── src/
 │
 ├── SPL_Attendance_Sprint1.postman_collection.json
-├── global.json                                ← Pins .NET SDK to 8.0.x
+├── global.json                                ← Pins .NET SDK to 8.0.0 (rollForward: latestFeature)
 └── README.md
 ```
 
@@ -248,9 +248,9 @@ The React app proxies API requests to `https://localhost:7001` (see `package.jso
 | POST | `/api/auth/login` | Login with email + password | — |
 | GET | `/api/auth/needs-logout-approval/{employeeId}` | Check if logout needs approval | Bearer |
 | POST | `/api/auth/logout/{employeeId}` | Record logout | Bearer |
-| POST | `/api/auth/set-password` | Set employee password (current API uses query params; recommended to move to JSON body) | Admin |
+| POST | `/api/auth/set-password` | Deprecated: current API uses query params; refactor to JSON body before use | Admin |
 
-> Security warning: the current API expects query parameters for `set-password`, which is insecure because credentials can be logged. Treat this as a vulnerability and **fix before production use** by switching the API to a JSON body (e.g., `{ "employeeId": 1, "password": "..." }`).
+> Security warning: the current API expects query parameters for `set-password`, which is insecure because credentials can be logged. **Do not use this endpoint in production**; refactor it to accept a JSON body (e.g., `{ "employeeId": 1, "password": "..." }`) or remove it until fixed.
 
 ### Employees
 
