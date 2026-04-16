@@ -202,7 +202,7 @@ cp SPL.Attendance.API/appsettings.Example.json SPL.Attendance.API/appsettings.js
 
 ## Database Setup
 
-- Create an empty MySQL database (e.g., `SPLAttendanceDB`).
+- Create an empty MySQL database (e.g., `SPLAttendanceDB`) and keep the name consistent with `appsettings.json`.
 - The API applies EF Core migrations automatically on startup (`db.Database.Migrate()`).
 - If you prefer manual migration: `dotnet ef database update --project SPL.Attendance.API`.
 
@@ -250,6 +250,8 @@ The React app proxies API requests to `https://localhost:7001` (see `package.jso
 | GET | `/api/auth/needs-logout-approval/{employeeId}` | Check if logout needs approval | Bearer |
 | POST | `/api/auth/logout/{employeeId}` | Record logout | Bearer |
 | POST | `/api/auth/set-password?employeeId=1&password=...` | Set employee password (query params; use HTTPS, avoid logging) | Admin |
+
+> Security note: the current API expects query parameters for `set-password`. Consider moving this endpoint to a JSON body in the API implementation to avoid logging sensitive data.
 
 ### Employees
 
