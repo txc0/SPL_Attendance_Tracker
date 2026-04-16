@@ -250,7 +250,7 @@ The React app proxies API requests to `https://localhost:7001` (see `package.jso
 | POST | `/api/auth/logout/{employeeId}` | Record logout | Bearer |
 | POST | `/api/auth/set-password` | Set employee password (current API uses query params; recommended to move to JSON body) | Admin |
 
-> Security warning: the current API expects query parameters for `set-password`, which is insecure because credentials can be logged. Treat this as a vulnerability and **fix before production use** by switching the API to a JSON body (e.g., `{ \"employeeId\": 1, \"password\": \"...\" }`).
+> Security warning: the current API expects query parameters for `set-password`, which is insecure because credentials can be logged. Treat this as a vulnerability and **fix before production use** by switching the API to a JSON body (e.g., `{ "employeeId": 1, "password": "..." }`).
 
 ### Employees
 
