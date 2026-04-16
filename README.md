@@ -196,7 +196,6 @@ cp SPL.Attendance.API/appsettings.Example.json SPL.Attendance.API/appsettings.js
 ```
 
 > `appsettings.json` is ignored by Git. Keep secrets out of source control.
-> Ensure the database name in your connection string matches the database you created in MySQL.
 
 ---
 
@@ -204,7 +203,7 @@ cp SPL.Attendance.API/appsettings.Example.json SPL.Attendance.API/appsettings.js
 
 - Create an empty MySQL database (e.g., `SPLAttendanceDB`) and keep the name consistent with `appsettings.json`.
 - The API applies EF Core migrations automatically on startup (`db.Database.Migrate()`).
-- If you prefer manual migration: `dotnet ef database update --project SPL.Attendance.API`.
+- If you prefer manual migration: install the EF tool (`dotnet tool install --global dotnet-ef`) and run `dotnet ef database update --project SPL.Attendance.API`.
 
 ### Tables Overview
 
@@ -249,9 +248,9 @@ The React app proxies API requests to `https://localhost:7001` (see `package.jso
 | POST | `/api/auth/login` | Login with email + password | — |
 | GET | `/api/auth/needs-logout-approval/{employeeId}` | Check if logout needs approval | Bearer |
 | POST | `/api/auth/logout/{employeeId}` | Record logout | Bearer |
-| POST | `/api/auth/set-password?employeeId=1&password=...` | Set employee password (query params; use HTTPS, avoid logging) | Admin |
+| POST | `/api/auth/set-password` | Set employee password (current API uses query params; recommended to move to JSON body) | Admin |
 
-> Security warning: the current API expects query parameters for `set-password`, which is insecure because credentials can be logged. Treat this as a vulnerability and update the API to accept a JSON body before production use.
+> Security warning: the current API expects query parameters for `set-password`, which is insecure because credentials can be logged. Treat this as a vulnerability and **fix before production use** by switching the API to a JSON body (e.g., `{ \"employeeId\": 1, \"password\": \"...\" }`).
 
 ### Employees
 
