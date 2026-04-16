@@ -195,7 +195,7 @@ cp SPL.Attendance.API/appsettings.Example.json SPL.Attendance.API/appsettings.js
 }
 ```
 
-> `appsettings.json` is ignored by git. Keep secrets out of source control.
+> `appsettings.json` is ignored by Git. Keep secrets out of source control.
 > Ensure the database name in your connection string matches the database you created in MySQL.
 
 ---
@@ -251,7 +251,7 @@ The React app proxies API requests to `https://localhost:7001` (see `package.jso
 | POST | `/api/auth/logout/{employeeId}` | Record logout | Bearer |
 | POST | `/api/auth/set-password?employeeId=1&password=...` | Set employee password (query params; use HTTPS, avoid logging) | Admin |
 
-> Security note: the current API expects query parameters for `set-password`. Consider moving this endpoint to a JSON body in the API implementation to avoid logging sensitive data.
+> Security warning: the current API expects query parameters for `set-password`, which is insecure because credentials can be logged. Treat this as a vulnerability and update the API to accept a JSON body before production use.
 
 ### Employees
 
