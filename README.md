@@ -196,6 +196,7 @@ cp SPL.Attendance.API/appsettings.Example.json SPL.Attendance.API/appsettings.js
 ```
 
 > `appsettings.json` is ignored by git. Keep secrets out of source control.
+> Ensure the database name in your connection string matches the database you created in MySQL.
 
 ---
 
@@ -248,7 +249,7 @@ The React app proxies API requests to `https://localhost:7001` (see `package.jso
 | POST | `/api/auth/login` | Login with email + password | — |
 | GET | `/api/auth/needs-logout-approval/{employeeId}` | Check if logout needs approval | Bearer |
 | POST | `/api/auth/logout/{employeeId}` | Record logout | Bearer |
-| POST | `/api/auth/set-password?employeeId=1&password=...` | Set employee password | Admin |
+| POST | `/api/auth/set-password?employeeId=1&password=...` | Set employee password (query params; use HTTPS, avoid logging) | Admin |
 
 ### Employees
 
