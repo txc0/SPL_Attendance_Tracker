@@ -16,6 +16,7 @@ namespace SPL.Attendance.Tests
         private readonly Mock<IAttendanceRepository> _repoMock;
         private readonly Mock<IShowCauseRepository> _showCauseMock;
         private readonly Mock<IEmployeeRepository> _employeeRepoMock;
+        private readonly Mock<ICompanyPolicyRepository> _companyPolicyRepoMock;
         private readonly AttendanceService _sut;
         private const int ValidEmployeeId = 1;
 
@@ -24,6 +25,11 @@ namespace SPL.Attendance.Tests
             _repoMock = new Mock<IAttendanceRepository>();
             _showCauseMock = new Mock<IShowCauseRepository>();
             _employeeRepoMock = new Mock<IEmployeeRepository>();
+            _companyPolicyRepoMock = new Mock<ICompanyPolicyRepository>();
+
+            _companyPolicyRepoMock
+                .Setup(r => r.GetActiveAsync())
+                .ReturnsAsync((CompanyPolicy?)null);
 
             _employeeRepoMock.Setup(r => r.GetByIdAsync(ValidEmployeeId))
                 .ReturnsAsync(new Employee
@@ -37,7 +43,8 @@ namespace SPL.Attendance.Tests
             _sut = new AttendanceService(
                 _repoMock.Object,
                 _showCauseMock.Object,
-                _employeeRepoMock.Object);
+                _employeeRepoMock.Object,
+                _companyPolicyRepoMock.Object);
         }
 
         // ????????????????????????????????????????????????????????????

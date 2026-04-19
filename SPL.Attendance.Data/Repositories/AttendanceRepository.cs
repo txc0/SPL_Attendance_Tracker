@@ -226,5 +226,14 @@ namespace SPL.Attendance.Data.Repositories
                 .ThenBy(a => a.Employee.Name)
                 .ToListAsync();
         }
+
+        public async Task<List<int>> GetEmployeesWithOpenLogsAsync(DateTime date)
+        {
+            return await _context.AttendanceLogs
+                .Where(l => l.LogDate == date.Date && l.CheckOutTime == null)
+                .Select(l => l.EmployeeId)
+                .Distinct()
+                .ToListAsync();
+        }
     }
 }

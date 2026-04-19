@@ -11,20 +11,29 @@ namespace SPL.Attendance.Business.Services
         private readonly IEmployeeRepository _employeeRepo;
         private readonly IAttendanceRepository _attendanceRepo;
         private readonly IShowCauseRepository _showCauseRepo;
+        private readonly ICompanyPolicyRepository _companyPolicyRepo;
 
         public AuthService(IEmployeeRepository employeeRepo,
                            IAttendanceRepository attendanceRepo,
-                           IShowCauseRepository showCauseRepo)
+                           IShowCauseRepository showCauseRepo,
+                           ICompanyPolicyRepository companyPolicyRepo)
         {
             _employeeRepo = employeeRepo;
             _attendanceRepo = attendanceRepo;
             _showCauseRepo = showCauseRepo;
+            _companyPolicyRepo = companyPolicyRepo;
         }
 
         public async Task<LoginResultDto> LoginAsync(string email, string password)
         {
             // Find employee by email
             var employee = await _employeeRepo.GetByEmailAsync(email);
+
+            var policy = await _companyPolicyRepo.GetActiveAsync();
+            var now = DateTime.Now;
+            var inPolicyWindow = policy != null
+                && now.TimeOfDay >= policy.WorkStartTime
+                && now.TimeOfDay <= policy.WorkEndTime;
 
             if (employee == null || !employee.IsActive)
                 throw new UnauthorizedAccessException(

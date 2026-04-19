@@ -13,6 +13,7 @@ namespace SPL.Attendance.Data.Context
         public DbSet<AttendanceLog> AttendanceLogs => Set<AttendanceLog>();
         public DbSet<MonthlyAttendanceSummary> MonthlyAttendanceSummaries => Set<MonthlyAttendanceSummary>();
         public DbSet<ShowCauseRequest> ShowCauseRequests => Set<ShowCauseRequest>();
+        public DbSet<CompanyPolicy> CompanyPolicies => Set<CompanyPolicy>();
 
         protected override void OnModelCreating(ModelBuilder modelBuilder)
         {
@@ -35,6 +36,13 @@ namespace SPL.Attendance.Data.Context
                       .OnDelete(DeleteBehavior.Cascade);
             });
 
+            modelBuilder.Entity<CompanyPolicy>(entity =>
+            {
+                entity.HasKey(x => x.Id);
+                entity.Property(x => x.WorkStartTime).HasColumnType("time");
+                entity.Property(x => x.WorkEndTime).HasColumnType("time");
+            });
+
             modelBuilder.Entity<Entities.Attendance>(entity =>
             {
                 // Enforce business rule: one record per employee per day at DB level
@@ -42,6 +50,18 @@ namespace SPL.Attendance.Data.Context
                       .IsUnique()
                       .HasDatabaseName("UX_Attendance_Employee_Date");
             });
+
+            modelBuilder.Entity<CompanyPolicy>().HasData(
+                new CompanyPolicy
+                {
+                    Id = 1,
+                    WorkStartTime = new TimeSpan(8, 0, 0),
+                    WorkEndTime = new TimeSpan(16, 0, 0),
+                    RequireApprovalForMultipleLogin = true,
+                    AutoLogoutAfterShift = true,
+                    IsActive = true,
+                    CreatedAt = new DateTime(2026, 1, 1, 0, 0, 0)
+                });
 
             modelBuilder.Entity<Entities.Employee>().HasData(
                 new Entities.Employee

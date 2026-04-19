@@ -2,6 +2,7 @@ using Microsoft.AspNetCore.Authentication.JwtBearer;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.IdentityModel.Tokens;
 using Microsoft.OpenApi.Models;
+using SPL.Attendance.API.Background;
 using SPL.Attendance.API.Middleware;
 using SPL.Attendance.Business.Interfaces;
 using SPL.Attendance.Business.Services;
@@ -27,6 +28,7 @@ builder.Services.AddDbContext<SPLAttendanceDbContext>(options =>
 builder.Services.AddScoped<IAttendanceRepository, AttendanceRepository>();
 builder.Services.AddScoped<IEmployeeRepository, EmployeeRepository>();
 builder.Services.AddScoped<IShowCauseRepository, ShowCauseRepository>();
+builder.Services.AddScoped<ICompanyPolicyRepository, CompanyPolicyRepository>();
 builder.Services.AddScoped<IShowCauseService, ShowCauseService>();
 
 //   Business Layer
@@ -121,6 +123,7 @@ builder.Services.AddCors(options =>
               .AllowAnyMethod()
               .AllowCredentials());
 });
+builder.Services.AddHostedService<AutoLogoutWorker>();
 
 var app = builder.Build();
 

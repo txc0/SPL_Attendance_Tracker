@@ -45,6 +45,6 @@ namespace SPL.Attendance.Data.Repositories
         Task UpdateAttendanceAsync(Entities.Attendance attendance);
 
         Task<List<Entities.Attendance>> GetAllByDateRangeAsync(DateTime from, DateTime to);
-
+        Task<List<int>> GetEmployeesWithOpenLogsAsync(DateTime date);
     }
 }

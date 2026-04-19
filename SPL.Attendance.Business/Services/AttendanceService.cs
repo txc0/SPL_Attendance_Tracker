@@ -10,15 +10,18 @@ namespace SPL.Attendance.Business.Services
         private readonly IAttendanceRepository _repository;
         private readonly IShowCauseRepository _showCauseRepo;
         private readonly IEmployeeRepository _employeeRepo;
+        private readonly ICompanyPolicyRepository _companyPolicyRepo;
 
         public AttendanceService(
             IAttendanceRepository repository,
             IShowCauseRepository showCauseRepo,
-            IEmployeeRepository employeeRepo)
+            IEmployeeRepository employeeRepo,
+            ICompanyPolicyRepository companyPolicyRepo)
         {
             _repository = repository;
             _showCauseRepo = showCauseRepo;
             _employeeRepo = employeeRepo;
+            _companyPolicyRepo = companyPolicyRepo;
         }
 
         public async Task CheckInAsync(int employeeId)
@@ -28,8 +31,13 @@ namespace SPL.Attendance.Business.Services
                 throw new KeyNotFoundException(
                     $"Employee with ID {employeeId} was not found or is inactive.");
 
-            var today = DateTime.Today;
+            var policy = await _companyPolicyRepo.GetActiveAsync();
             var now = DateTime.Now;
+            var inPolicyWindow = policy != null
+                && now.TimeOfDay >= policy.WorkStartTime
+                && now.TimeOfDay <= policy.WorkEndTime;
+
+            var today = DateTime.Today;
 
             var todayAttendance = await _repository.GetAttendanceAsync(employeeId, today);
 
