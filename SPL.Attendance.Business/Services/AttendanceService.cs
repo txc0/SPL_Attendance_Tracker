@@ -325,7 +325,7 @@ namespace SPL.Attendance.Business.Services
             {
                 if (log.CheckInTime.HasValue && log.CheckOutTime.HasValue)
                 {
-                    totalHours += (decimal)(log.CheckOutTime.Value
+                    totalHours += (int)(log.CheckOutTime.Value
                                  - log.CheckInTime.Value).TotalHours;
                 }
             }

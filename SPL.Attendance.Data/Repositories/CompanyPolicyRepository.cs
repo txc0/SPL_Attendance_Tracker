@@ -19,5 +19,30 @@ namespace SPL.Attendance.Data.Repositories
                 .OrderByDescending(x => x.Id)
                 .FirstOrDefaultAsync(x => x.IsActive);
         }
+
+        public async Task<CompanyPolicy> UpsertActiveAsync(CompanyPolicy policy)
+        {
+            var current = await _context.CompanyPolicies
+                .OrderByDescending(x => x.Id)
+                .FirstOrDefaultAsync(x => x.IsActive);
+
+            if (current == null)
+            {
+                policy.IsActive = true;
+                policy.CreatedAt = DateTime.Now;
+                _context.CompanyPolicies.Add(policy);
+                await _context.SaveChangesAsync();
+                return policy;
+            }
+
+            current.WorkStartTime = policy.WorkStartTime;
+            current.WorkEndTime = policy.WorkEndTime;
+            current.RequireApprovalForMultipleLogin = policy.RequireApprovalForMultipleLogin;
+            current.AutoLogoutAfterShift = policy.AutoLogoutAfterShift;
+            current.UpdatedAt = DateTime.Now;
+
+            await _context.SaveChangesAsync();
+            return current;
+        }
     }
 }

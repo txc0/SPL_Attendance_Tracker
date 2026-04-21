@@ -10,14 +10,14 @@ const api = axios.create({
   httpsAgent: undefined,
 });
 
-// ── Employee ────────────────────────────────────────────────
+// ── Employee 
 export const getEmployee = (id) =>
   api.get(`/employees/${id}`);
 
 export const getAllEmployees = () =>
   api.get('/employees');
 
-// ── Attendance ──────────────────────────────────────────────
+// ── Attendance
 export const checkIn = (employeeId) =>
   api.post('/attendance/checkin', { employeeId });
 
@@ -29,5 +29,12 @@ export const getAttendanceByDate = (employeeId, date) =>
 
 export const getAttendanceLogs = (employeeId) =>
   api.get(`/attendance/${employeeId}/logs`);
+
+// ── Office Config ───────────────────────────────────────────
+export const getOfficeConfig = () =>
+  api.get('/office-config');
+
+export const updateOfficeConfig = (payload) =>
+  api.put('/office-config', payload);
 
 export default api;
