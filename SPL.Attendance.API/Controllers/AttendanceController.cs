@@ -165,6 +165,50 @@ namespace SPL.Attendance.API.Controllers
                 $"Attendance records.", records));
         }
 
+        [HttpGet("{employeeId:int}/monthly")]
+        [ProducesResponseType(typeof(ApiResponse<MonthlyAttendanceSummaryDto>), StatusCodes.Status200OK)]
+        [ProducesResponseType(typeof(ApiResponse<object>), StatusCodes.Status400BadRequest)]
+        [ProducesResponseType(typeof(ApiResponse<object>), StatusCodes.Status404NotFound)]
+        public async Task<IActionResult> GetMonthly(
+            [FromRoute] int employeeId,
+            [FromQuery] int month,
+            [FromQuery] int year)
+        {
+            if (month < 1 || month > 12)
+                return BadRequest(ApiResponse<object>.Fail("Month must be between 1 and 12."));
 
+            if (year < 2000 || year > 2100)
+                return BadRequest(ApiResponse<object>.Fail("Year is out of valid range."));
+
+            var summary = await _service.GetMonthlySummaryAsync(employeeId, month, year);
+
+            return Ok(ApiResponse<MonthlyAttendanceSummaryDto>.Ok(
+                "Monthly attendance summary retrieved successfully.", summary));
+        }
+
+        [HttpPost("{employeeId:int}/reset")]
+        [ProducesResponseType(typeof(ApiResponse<object>), StatusCodes.Status200OK)]
+        [ProducesResponseType(typeof(ApiResponse<object>), StatusCodes.Status400BadRequest)]
+        [ProducesResponseType(typeof(ApiResponse<object>), StatusCodes.Status404NotFound)]
+        public async Task<IActionResult> ResetMonthly(
+            [FromRoute] int employeeId,
+            [FromQuery] int month,
+            [FromQuery] int year,
+            [FromQuery] string managerName)
+        {
+            if (month < 1 || month > 12)
+                return BadRequest(ApiResponse<object>.Fail("Month must be between 1 and 12."));
+
+            if (year < 2000 || year > 2100)
+                return BadRequest(ApiResponse<object>.Fail("Year is out of valid range."));
+
+            if (string.IsNullOrWhiteSpace(managerName))
+                return BadRequest(ApiResponse<object>.Fail("managerName is required."));
+
+            await _service.ResetMonthlySummaryAsync(employeeId, month, year, managerName);
+
+            return Ok(ApiResponse<object>.Ok(
+                $"Monthly attendance reset for employee {employeeId} ({month}/{year}) by {managerName}."));
+        }
     }
 }

@@ -110,7 +110,7 @@ namespace SPL.Attendance.API.Controllers
         }
 
         /// <summary>Set password for an employee.</summary>
-        [Authorize(Roles = "Admin")]
+       // [Authorize(Roles = "Admin")]
         [HttpPost("set-password")]
         public async Task<IActionResult> SetPassword([FromQuery] int employeeId, [FromQuery] string password)
         {

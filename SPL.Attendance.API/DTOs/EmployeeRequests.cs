@@ -6,7 +6,7 @@ namespace SPL.Attendance.API.DTOs
     {
         [Required(ErrorMessage = "EmployeeCode is required.")]
         [MaxLength(50, ErrorMessage = "EmployeeCode cannot exceed 50 characters.")]
-        [RegularExpression(@"^[A-Za-z0-9\-_]+$",
+        [RegularExpression(@"^SPL_\d+$",
             ErrorMessage = "EmployeeCode may only contain letters, numbers, hyphens, and underscores.")]
         public string EmployeeCode { get; set; } = string.Empty;
 
@@ -15,6 +15,8 @@ namespace SPL.Attendance.API.DTOs
         public string Name { get; set; } = string.Empty;
 
         [EmailAddress(ErrorMessage = "Email is not a valid email address.")]
+           [RegularExpression(@"^[A-Za-z0-9._%+-]+@splbdgroup\.com$",
+            ErrorMessage = "Email must be your company Email name@splbdgroup.com.")]
         [MaxLength(150, ErrorMessage = "Email cannot exceed 150 characters.")]
         public string? Email { get; set; }
 

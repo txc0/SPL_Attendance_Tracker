@@ -115,18 +115,20 @@ namespace SPL.Attendance.Data.Repositories
         }
 
         public async Task UpsertMonthlyAsync(
-            Data.Entities.MonthlyAttendanceSummary summary)
+            MonthlyAttendanceSummary summary)
         {
-            var existing = await GetMonthlyAsync(
-                summary.EmployeeId, summary.Month, summary.Year);
+            var existing = await GetMonthlyAsync(summary.EmployeeId, summary.Month, summary.Year);
 
             if (existing == null)
+            {
                 await _context.MonthlyAttendanceSummaries.AddAsync(summary);
+            }
             else
             {
                 existing.TotalDays = summary.TotalDays;
                 existing.IsReset = false;
                 existing.ResetAt = null;
+                existing.ResetByManager = null;
                 _context.MonthlyAttendanceSummaries.Update(existing);
             }
 
@@ -137,14 +139,32 @@ namespace SPL.Attendance.Data.Repositories
             int employeeId, int month, int year, string managerName)
         {
             var summary = await GetMonthlyAsync(employeeId, month, year);
-            if (summary == null) return;
 
-            summary.TotalDays = 0;
-            summary.IsReset = true;
-            summary.ResetAt = DateTime.Now;
-            summary.ResetByManager = managerName;
+            if (summary == null)
+            {
+                summary = new MonthlyAttendanceSummary
+                {
+                    EmployeeId = employeeId,
+                    Month = month,
+                    Year = year,
+                    TotalDays = 0,
+                    IsReset = true,
+                    ResetAt = DateTime.Now,
+                    ResetByManager = managerName
+                };
 
-            _context.MonthlyAttendanceSummaries.Update(summary);
+                await _context.MonthlyAttendanceSummaries.AddAsync(summary);
+            }
+            else
+            {
+                summary.TotalDays = 0;
+                summary.IsReset = true;
+                summary.ResetAt = DateTime.Now;
+                summary.ResetByManager = managerName;
+
+                _context.MonthlyAttendanceSummaries.Update(summary);
+            }
+
             await _context.SaveChangesAsync();
         }
 
@@ -176,7 +196,10 @@ namespace SPL.Attendance.Data.Repositories
             else
             {
                 attendance.LoginCount += 1;
-                attendance.CheckInTime = DateTime.Now;
+
+                if (!attendance.CheckInTime.HasValue)
+                    attendance.CheckInTime = DateTime.Now;
+
                 _context.Attendances.Update(attendance);
             }
 
@@ -191,18 +214,32 @@ namespace SPL.Attendance.Data.Repositories
             if (attendance == null) return;
 
             attendance.LogoutCount += 1;
-            attendance.CheckOutTime = DateTime.Now;
 
-            // Calculate total work hours from all logs
             var logs = await GetLogsByDateAsync(employeeId, today);
-            decimal totalHours = 0;
-            foreach (var log in logs)
+
+            var firstCheckIn = logs
+                .Where(x => x.CheckInTime.HasValue)
+                .Select(x => x.CheckInTime!.Value)
+                .DefaultIfEmpty()
+                .Min();
+
+            var lastCheckOut = logs
+                .Where(x => x.CheckOutTime.HasValue)
+                .Select(x => x.CheckOutTime!.Value)
+                .DefaultIfEmpty()
+                .Max();
+
+            if (firstCheckIn != default && lastCheckOut != default && lastCheckOut > firstCheckIn)
             {
-                if (log.CheckInTime.HasValue && log.CheckOutTime.HasValue)
-                    totalHours += (decimal)(log.CheckOutTime.Value
-                                 - log.CheckInTime.Value).TotalHours;
+                attendance.CheckInTime = firstCheckIn;
+                attendance.CheckOutTime = lastCheckOut;
+                attendance.WorkHours = Math.Round((decimal)(lastCheckOut - firstCheckIn).TotalHours, 2);
             }
-            attendance.WorkHours = Math.Round(totalHours, 2);
+            else
+            {
+                attendance.WorkHours = 0;
+            }
+
             attendance.IsCompleted = true;
 
             _context.Attendances.Update(attendance);
