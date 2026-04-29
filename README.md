@@ -1,5 +1,6 @@
 # SPL Attendance Management System
 
+>Sprints 
 > **Sprint 1 — Core Attendance Logic with proper constraints**
 > **Sprint 2 - AutoLogout feature when work hour is completed**
 > ASP.NET Core 8 · Entity Framework Core 8 · Pomelo MySQL Provider · xUnit · Swagger
