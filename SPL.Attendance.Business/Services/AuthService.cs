@@ -51,26 +51,38 @@ namespace SPL.Attendance.Business.Services
                 throw new UnauthorizedAccessException(
                     "Invalid email or password.");
 
+            var today = DateTime.Today;
             var loginCount = await _attendanceRepo.GetLoginCountTodayAsync(employee.Id);
 
             // From 2nd login attempt onward, require admin approval for non-supervisors.
             if (!employee.IsSupervisor && loginCount >= 1)
             {
                 var todayAttendance = await _attendanceRepo
-                    .GetAttendanceAsync(employee.Id, DateTime.Today);
+                    .GetAttendanceAsync(employee.Id, today);
+
+                var todayLogs = await _attendanceRepo.GetLogsByDateAsync(employee.Id, today);
+                var lastCheckIn = todayLogs
+                    .Where(x => x.CheckInTime.HasValue)
+                    .Select(x => x.CheckInTime!.Value)
+                    .DefaultIfEmpty()
+                    .Max();
+
+                var approvalCutoff = lastCheckIn != default
+                    ? lastCheckIn
+                    : (todayAttendance?.CheckInTime ?? DateTime.MinValue);
 
                 var approved = await _showCauseRepo
                     .GetApprovedByEmployeeAsync(employee.Id, "LOGIN");
 
                 var approvedForThisAttempt = approved != null
                     && approved.ReviewedAt.HasValue
-                    && approved.ReviewedAt.Value.Date == DateTime.Today
-                    && approved.ReviewedAt.Value > (todayAttendance?.CheckInTime ?? DateTime.MinValue);
+                    && approved.ReviewedAt.Value.Date == today
+                    && approved.ReviewedAt.Value > approvalCutoff;
 
                 if (!approvedForThisAttempt)
                 {
                     var pendingToday = await _showCauseRepo
-                        .GetPendingByEmployeeAndDateAsync(employee.Id, DateTime.Today);
+                        .GetPendingByEmployeeAndDateAsync(employee.Id, today);
 
                     if (pendingToday == null)
                     {
@@ -85,6 +97,7 @@ namespace SPL.Attendance.Business.Services
                         };
 
                         await _showCauseRepo.AddAsync(request);
+                        await _unitOfWork.SaveChangesAsync();
                     }
 
                     throw new UnauthorizedAccessException("Please wait for admin approval.");
@@ -129,12 +142,14 @@ namespace SPL.Attendance.Business.Services
         public async Task RecordLogoutAsync(int employeeId)
         {
             var today = DateTime.Today;
+            var now = DateTime.Now;
+
             var openLog = await _attendanceRepo
                 .GetOpenLogAsync(employeeId, today);
 
             if (openLog != null)
             {
-                openLog.CheckOutTime = DateTime.Now;
+                openLog.CheckOutTime = now;
                 await _attendanceRepo.UpdateLogAsync(openLog);
             }
 
@@ -145,11 +160,36 @@ namespace SPL.Attendance.Business.Services
                 return;
             }
 
+            var wasCompletedBeforeLogout = attendance.IsCompleted;
+
             attendance.LogoutCount += 1;
-            attendance.CheckOutTime = DateTime.Now;
+            attendance.CheckOutTime = now;
             attendance.IsCompleted = true;
 
             await _attendanceRepo.IncrementLogoutCountAsync(employeeId);
+
+            if (!wasCompletedBeforeLogout)
+            {
+                var summary = await _attendanceRepo.GetMonthlyAsync(employeeId, now.Month, now.Year);
+
+                if (summary == null)
+                {
+                    summary = new MonthlyAttendanceSummary
+                    {
+                        EmployeeId = employeeId,
+                        Month = now.Month,
+                        Year = now.Year,
+                        TotalDays = 1
+                    };
+                }
+                else
+                {
+                    summary.TotalDays += 1;
+                }
+
+                await _attendanceRepo.UpsertMonthlyAsync(summary);
+            }
+
             await _unitOfWork.SaveChangesAsync();
         }
 
