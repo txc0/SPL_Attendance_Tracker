@@ -19,6 +19,7 @@ namespace SPL.Attendance.Data.Repositories
         public async Task<List<Employee>> GetAllAsync()
         {
             return await _context.Employees
+                .AsNoTracking()
                 .Include(e => e.Supervisor)
                 .Where(e => e.IsActive)
                 .OrderBy(e => e.Name)
@@ -35,21 +36,20 @@ namespace SPL.Attendance.Data.Repositories
         public async Task<Employee?> GetByCodeAsync(string employeeCode)
         {
             return await _context.Employees
+                .AsNoTracking()
                 .FirstOrDefaultAsync(e => e.EmployeeCode == employeeCode);
         }
 
         public async Task<Employee> AddAsync(Employee employee)
         {
             await _context.Employees.AddAsync(employee);
-            await _context.SaveChangesAsync();
             return employee;
         }
 
-        public async Task<Employee> UpdateAsync(Employee employee)
+        public Task<Employee> UpdateAsync(Employee employee)
         {
             _context.Employees.Update(employee);
-            await _context.SaveChangesAsync();
-            return employee;
+            return Task.FromResult(employee);
         }
 
         public async Task<bool> DeactivateAsync(int id)
@@ -58,7 +58,6 @@ namespace SPL.Attendance.Data.Repositories
             if (employee == null) return false;
 
             employee.IsActive = false;
-            await _context.SaveChangesAsync();
             return true;
         }
 
@@ -77,6 +76,7 @@ namespace SPL.Attendance.Data.Repositories
         public async Task<Employee?> GetByEmailAsync(string email)
         {
             return await _context.Employees
+                .AsNoTracking()
                 .FirstOrDefaultAsync(e =>
                     e.Email == email.ToLower().Trim() &&
                     e.IsActive);

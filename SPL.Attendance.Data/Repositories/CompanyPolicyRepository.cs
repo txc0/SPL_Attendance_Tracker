@@ -16,6 +16,7 @@ namespace SPL.Attendance.Data.Repositories
         public async Task<CompanyPolicy?> GetActiveAsync()
         {
             return await _context.CompanyPolicies
+                .AsNoTracking()
                 .OrderByDescending(x => x.Id)
                 .FirstOrDefaultAsync(x => x.IsActive);
         }
@@ -31,7 +32,6 @@ namespace SPL.Attendance.Data.Repositories
                 policy.IsActive = true;
                 policy.CreatedAt = DateTime.Now;
                 _context.CompanyPolicies.Add(policy);
-                await _context.SaveChangesAsync();
                 return policy;
             }
 
@@ -41,7 +41,6 @@ namespace SPL.Attendance.Data.Repositories
             current.AutoLogoutAfterShift = policy.AutoLogoutAfterShift;
             current.UpdatedAt = DateTime.Now;
 
-            await _context.SaveChangesAsync();
             return current;
         }
     }

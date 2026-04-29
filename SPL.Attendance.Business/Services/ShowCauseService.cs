@@ -9,12 +9,15 @@ namespace SPL.Attendance.Business.Services
     {
         private readonly IShowCauseRepository _showCauseRepo;
         private readonly IEmployeeRepository _employeeRepo;
+        private readonly IUnitOfWork _unitOfWork;
 
         public ShowCauseService(IShowCauseRepository showCauseRepo,
-                                IEmployeeRepository employeeRepo)
+                                IEmployeeRepository employeeRepo,
+                                IUnitOfWork unitOfWork)
         {
             _showCauseRepo = showCauseRepo;
             _employeeRepo = employeeRepo;
+            _unitOfWork = unitOfWork;
         }
 
         public async Task<ShowCauseRequestDto> SubmitAsync(int employeeId, string reason, string type = "LOGIN")
@@ -45,6 +48,7 @@ namespace SPL.Attendance.Business.Services
             };
 
             var created = await _showCauseRepo.AddAsync(request);
+            await _unitOfWork.SaveChangesAsync();
             return MapToDto(created, employee.Name,
                             employee.Supervisor?.Name ?? "Supervisor");
         }
@@ -69,6 +73,7 @@ namespace SPL.Attendance.Business.Services
             request.ReviewNote = reviewNote;
 
             await _showCauseRepo.UpdateAsync(request);
+            await _unitOfWork.SaveChangesAsync();
         }
 
         public async Task<List<ShowCauseRequestDto>> GetPendingForSupervisorAsync(

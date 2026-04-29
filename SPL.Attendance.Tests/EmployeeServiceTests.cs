@@ -4,6 +4,7 @@ using SPL.Attendance.Business.Models;
 using SPL.Attendance.Business.Services;
 using SPL.Attendance.Data.Entities;
 using SPL.Attendance.Data.Repositories;
+using System.Threading;
 using Xunit;
 
 namespace SPL.Attendance.Tests
@@ -14,12 +15,19 @@ namespace SPL.Attendance.Tests
     public class EmployeeServiceTests
     {
         private readonly Mock<IEmployeeRepository> _repoMock;
+        private readonly Mock<IUnitOfWork> _unitOfWorkMock;
         private readonly EmployeeService _sut;
 
         public EmployeeServiceTests()
         {
             _repoMock = new Mock<IEmployeeRepository>();
-            _sut = new EmployeeService(_repoMock.Object);
+
+            _unitOfWorkMock = new Mock<IUnitOfWork>();
+            _unitOfWorkMock
+                .Setup(u => u.SaveChangesAsync(It.IsAny<CancellationToken>()))
+                .ReturnsAsync(1);
+
+            _sut = new EmployeeService(_repoMock.Object, _unitOfWorkMock.Object);
         }
 
         // ════════════════════════════════════════════════════════════════════

@@ -13,10 +13,12 @@ namespace SPL.Attendance.API.Controllers
     {
         private readonly ICompanyPolicyRepository _policyRepository;
         private readonly ILogger<OfficeConfigController> _logger;
+        private readonly IUnitOfWork _unitOfWork;
 
         public OfficeConfigController(
             ICompanyPolicyRepository policyRepository,
-            ILogger<OfficeConfigController> logger)
+            ILogger<OfficeConfigController> logger,
+            IUnitOfWork unitOfWork)
         {
             _policyRepository = policyRepository;
             _logger = logger;
@@ -69,6 +71,8 @@ namespace SPL.Attendance.API.Controllers
                 AutoLogoutAfterShift = request.AutoLogoutAfterShift,
                 IsActive = true
             });
+
+            await _unitOfWork.SaveChangesAsync();
 
             _logger.LogInformation("Office configuration updated. PolicyId={PolicyId}", updated.Id);
 

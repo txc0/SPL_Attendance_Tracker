@@ -11,17 +11,19 @@ namespace SPL.Attendance.Business.Services
         private readonly IShowCauseRepository _showCauseRepo;
         private readonly IEmployeeRepository _employeeRepo;
         private readonly ICompanyPolicyRepository _companyPolicyRepo;
-
+        private readonly IUnitOfWork _unitOfWork;
         public AttendanceService(
             IAttendanceRepository repository,
             IShowCauseRepository showCauseRepo,
             IEmployeeRepository employeeRepo,
-            ICompanyPolicyRepository companyPolicyRepo)
+            ICompanyPolicyRepository companyPolicyRepo,
+            IUnitOfWork unitOfWork)
         {
             _repository = repository;
             _showCauseRepo = showCauseRepo;
             _employeeRepo = employeeRepo;
             _companyPolicyRepo = companyPolicyRepo;
+            _unitOfWork = unitOfWork;
         }
 
         public async Task CheckInAsync(int employeeId)
@@ -68,6 +70,7 @@ namespace SPL.Attendance.Business.Services
                         };
 
                         await _showCauseRepo.AddAsync(request);
+                        await _unitOfWork.SaveChangesAsync();
 
                         throw new InvalidOperationException(
                             "SHOW_CAUSE_REQUIRED: Please submit show cause and wait for admin approval.");
@@ -107,6 +110,7 @@ namespace SPL.Attendance.Business.Services
             var log = new Data.Entities.AttendanceLog
             {
                 AttendanceId = todayAttendance.Id,
+                Attendance = todayAttendance,
                 EmployeeId = employeeId,
                 EmployeeName = employeeName,
                 CheckInTime = now,
@@ -176,7 +180,6 @@ namespace SPL.Attendance.Business.Services
 
             await _repository.UpdateCheckOutAsync(attendance);
 
-            // Count completed day only once per day
             if (!wasCompletedBeforeCheckout)
             {
                 var summary = await _repository.GetMonthlyAsync(employeeId, now.Month, now.Year);
@@ -198,6 +201,8 @@ namespace SPL.Attendance.Business.Services
 
                 await _repository.UpsertMonthlyAsync(summary);
             }
+
+            await _unitOfWork.SaveChangesAsync();
         }
 
 
@@ -320,6 +325,7 @@ namespace SPL.Attendance.Business.Services
                 throw new ArgumentException("Manager name is required.", nameof(managerName));
 
             await _repository.ResetMonthlyAsync(employeeId, month, year, managerName.Trim());
+            await _unitOfWork.SaveChangesAsync();
         }
     }
 }

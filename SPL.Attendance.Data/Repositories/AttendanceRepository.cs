@@ -26,20 +26,19 @@ namespace SPL.Attendance.Data.Repositories
         public async Task AddCheckInAsync(Entities.Attendance attendance)
         {
             await _context.Attendances.AddAsync(attendance);
-            await _context.SaveChangesAsync();
         }
 
-        /// <inheritdoc />
-        public async Task UpdateCheckOutAsync(Entities.Attendance attendance)
+        public Task UpdateCheckOutAsync(Entities.Attendance attendance)
         {
             _context.Attendances.Update(attendance);
-            await _context.SaveChangesAsync();
+            return Task.CompletedTask;
         }
 
         /// <inheritdoc />
         public async Task<List<Entities.Attendance>> GetHistoryAsync(int employeeId)
         {
             return await _context.Attendances
+                .AsNoTracking()
                 .Where(a => a.EmployeeId == employeeId)
                 .OrderByDescending(a => a.AttendanceDate)
                 .ToListAsync();
@@ -59,39 +58,21 @@ namespace SPL.Attendance.Data.Repositories
         public async Task AddLogAsync(AttendanceLog log)
         {
             await _context.AttendanceLogs.AddAsync(log);
-            await _context.SaveChangesAsync();
         }
 
-        public async Task<List<AttendanceLog>> GetLogsByEmployeeAsync(int employeeId)
-        {
-            return await _context.AttendanceLogs
-                .Where(l => l.EmployeeId == employeeId)
-                .OrderByDescending(l => l.LogDate)
-                .ThenByDescending(l => l.CreatedAt)
-                .ToListAsync();
-        }
-
-        public async Task<List<AttendanceLog>> GetLogsByDateAsync(
-            int employeeId, DateTime date)
-        {
-            return await _context.AttendanceLogs
-                .Where(l => l.EmployeeId == employeeId
-                         && l.LogDate == date.Date)
-                .OrderByDescending(l => l.CreatedAt)
-                .ToListAsync();
-        }
-
-        public async Task UpdateLogAsync(AttendanceLog log)
+        public Task UpdateLogAsync(AttendanceLog log)
         {
             _context.AttendanceLogs.Update(log);
-            await _context.SaveChangesAsync();
+            return Task.CompletedTask;
         }
 
         public async Task<string> GetEmployeeNameAsync(int employeeId)
         {
-            var employee = await _context.Employees
-                .FirstOrDefaultAsync(e => e.Id == employeeId);
-            return employee?.Name ?? "Unknown";
+            return await _context.Employees
+                .AsNoTracking()
+                .Where(e => e.Id == employeeId)
+                .Select(e => e.Name)
+                .FirstOrDefaultAsync() ?? "Unknown";
         }
 
         public async Task<AttendanceLog?> GetOpenLogAsync(int employeeId, DateTime date)
@@ -131,8 +112,6 @@ namespace SPL.Attendance.Data.Repositories
                 existing.ResetByManager = null;
                 _context.MonthlyAttendanceSummaries.Update(existing);
             }
-
-            await _context.SaveChangesAsync();
         }
 
         public async Task ResetMonthlyAsync(
@@ -164,8 +143,6 @@ namespace SPL.Attendance.Data.Repositories
 
                 _context.MonthlyAttendanceSummaries.Update(summary);
             }
-
-            await _context.SaveChangesAsync();
         }
 
         public async Task<int> GetLoginCountTodayAsync(int employeeId)
@@ -202,8 +179,6 @@ namespace SPL.Attendance.Data.Repositories
 
                 _context.Attendances.Update(attendance);
             }
-
-            await _context.SaveChangesAsync();
         }
 
         public async Task IncrementLogoutCountAsync(int employeeId)
@@ -243,19 +218,19 @@ namespace SPL.Attendance.Data.Repositories
             attendance.IsCompleted = true;
 
             _context.Attendances.Update(attendance);
-            await _context.SaveChangesAsync();
         }
 
-        public async Task UpdateAttendanceAsync(Entities.Attendance attendance)
+        public Task UpdateAttendanceAsync(Entities.Attendance attendance)
         {
             _context.Attendances.Update(attendance);
-            await _context.SaveChangesAsync();
+            return Task.CompletedTask;
         }
 
         public async Task<List<Entities.Attendance>> GetAllByDateRangeAsync(
     DateTime from, DateTime to)
         {
             return await _context.Attendances
+                .AsNoTracking()
                 .Include(a => a.Employee)
                 .Where(a => a.AttendanceDate >= from.Date &&
                             a.AttendanceDate <= to.Date)
@@ -267,10 +242,35 @@ namespace SPL.Attendance.Data.Repositories
         public async Task<List<int>> GetEmployeesWithOpenLogsAsync(DateTime date)
         {
             return await _context.AttendanceLogs
+                .AsNoTracking()
                 .Where(l => l.LogDate == date.Date && l.CheckOutTime == null)
                 .Select(l => l.EmployeeId)
                 .Distinct()
                 .ToListAsync();
+        }
+
+        // Add this method to AttendanceRepository to fix CS0103
+        private async Task<List<AttendanceLog>> GetLogsByDateAsync(int employeeId, DateTime date)
+        {
+            return await _context.AttendanceLogs
+                .Where(l => l.EmployeeId == employeeId && l.LogDate == date.Date)
+                .OrderBy(l => l.CheckInTime)
+                .ToListAsync();
+        }
+
+        public async Task<List<AttendanceLog>> GetLogsByEmployeeAsync(int employeeId)
+        {
+            return await _context.AttendanceLogs
+                .AsNoTracking()
+                .Where(l => l.EmployeeId == employeeId)
+                .OrderByDescending(l => l.LogDate)
+                .ThenByDescending(l => l.CreatedAt)
+                .ToListAsync();
+        }
+
+        Task<List<AttendanceLog>> IAttendanceRepository.GetLogsByDateAsync(int employeeId, DateTime date)
+        {
+            return GetLogsByDateAsync(employeeId, date);
         }
     }
 }

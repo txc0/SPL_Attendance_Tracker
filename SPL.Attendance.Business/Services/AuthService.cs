@@ -12,16 +12,19 @@ namespace SPL.Attendance.Business.Services
         private readonly IAttendanceRepository _attendanceRepo;
         private readonly IShowCauseRepository _showCauseRepo;
         private readonly ICompanyPolicyRepository _companyPolicyRepo;
+        private readonly IUnitOfWork _unitOfWork;
 
         public AuthService(IEmployeeRepository employeeRepo,
                            IAttendanceRepository attendanceRepo,
                            IShowCauseRepository showCauseRepo,
-                           ICompanyPolicyRepository companyPolicyRepo)
+                           ICompanyPolicyRepository companyPolicyRepo,
+                           IUnitOfWork unitOfWork)
         {
             _employeeRepo = employeeRepo;
             _attendanceRepo = attendanceRepo;
             _showCauseRepo = showCauseRepo;
             _companyPolicyRepo = companyPolicyRepo;
+            _unitOfWork = unitOfWork;
         }
 
         public async Task<LoginResultDto> LoginAsync(string email, string password)
@@ -102,13 +105,11 @@ namespace SPL.Attendance.Business.Services
         public async Task RecordLoginAsync(int employeeId)
         {
             await _attendanceRepo.IncrementLoginCountAsync(employeeId);
+            await _unitOfWork.SaveChangesAsync();
 
-            // Add log entry
             var today = DateTime.Today;
-            var attendance = await _attendanceRepo.GetAttendanceAsync(
-                employeeId, today);
-            var empName = await _attendanceRepo
-                .GetEmployeeNameAsync(employeeId);
+            var attendance = await _attendanceRepo.GetAttendanceAsync(employeeId, today);
+            var empName = await _attendanceRepo.GetEmployeeNameAsync(employeeId);
 
             if (attendance != null)
             {
@@ -121,6 +122,7 @@ namespace SPL.Attendance.Business.Services
                     LogDate = today
                 };
                 await _attendanceRepo.AddLogAsync(log);
+                await _unitOfWork.SaveChangesAsync();
             }
         }
 
@@ -136,15 +138,19 @@ namespace SPL.Attendance.Business.Services
                 await _attendanceRepo.UpdateLogAsync(openLog);
             }
 
-
             var attendance = await _attendanceRepo.GetAttendanceAsync(employeeId, today);
-            if (attendance == null) return;
+            if (attendance == null)
+            {
+                await _unitOfWork.SaveChangesAsync();
+                return;
+            }
 
             attendance.LogoutCount += 1;
             attendance.CheckOutTime = DateTime.Now;
             attendance.IsCompleted = true;
 
             await _attendanceRepo.IncrementLogoutCountAsync(employeeId);
+            await _unitOfWork.SaveChangesAsync();
         }
 
         public async Task<bool> NeedsShowCauseForLoginAsync(int employeeId)
@@ -178,6 +184,7 @@ namespace SPL.Attendance.Business.Services
 
             employee.PasswordHash = HashPassword(plainPassword);
             await _employeeRepo.UpdateAsync(employee);
+            await _unitOfWork.SaveChangesAsync();
         }
     }
 }

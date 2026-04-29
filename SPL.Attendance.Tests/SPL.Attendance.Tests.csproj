@@ -17,9 +17,12 @@
     </PackageReference>
     <PackageReference Include="Moq" Version="4.20.69" />
     <PackageReference Include="FluentAssertions" Version="6.12.0" />
+    <PackageReference Include="Microsoft.AspNetCore.Mvc.Testing" Version="8.0.4" />
+    <PackageReference Include="Microsoft.EntityFrameworkCore.InMemory" Version="8.0.4" />
   </ItemGroup>
 
   <ItemGroup>
+    <ProjectReference Include="..\SPL.Attendance.API\SPL.Attendance.API.csproj" />
     <ProjectReference Include="..\SPL.Attendance.Business\SPL.Attendance.Business.csproj" />
     <ProjectReference Include="..\SPL.Attendance.Data\SPL.Attendance.Data.csproj" />
   </ItemGroup>

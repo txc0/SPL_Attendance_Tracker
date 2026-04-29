@@ -16,7 +16,6 @@ namespace SPL.Attendance.Data.Repositories
         public async Task<ShowCauseRequest> AddAsync(ShowCauseRequest request)
         {
             await _context.ShowCauseRequests.AddAsync(request);
-            await _context.SaveChangesAsync();
             return request;
         }
 
@@ -32,6 +31,7 @@ namespace SPL.Attendance.Data.Repositories
             int supervisorId)
         {
             return await _context.ShowCauseRequests
+                .AsNoTracking()
                 .Include(s => s.Employee)
                 .Where(s => s.SupervisorId == supervisorId &&
                             s.Status == "Pending")
@@ -43,21 +43,23 @@ namespace SPL.Attendance.Data.Repositories
             int employeeId)
         {
             return await _context.ShowCauseRequests
+                .AsNoTracking()
                 .Where(s => s.EmployeeId == employeeId &&
                             s.Status == "Pending")
                 .OrderByDescending(s => s.RequestedAt)
                 .FirstOrDefaultAsync();
         }
 
-        public async Task UpdateAsync(ShowCauseRequest request)
+        public Task UpdateAsync(ShowCauseRequest request)
         {
             _context.ShowCauseRequests.Update(request);
-            await _context.SaveChangesAsync();
+            return Task.CompletedTask;
         }
 
         public async Task<ShowCauseRequest?> GetApprovedByEmployeeAsync(int employeeId, string type)
         {
             return await _context.ShowCauseRequests
+                .AsNoTracking()
                 .Where(s => s.EmployeeId == employeeId &&
                             s.Type == type &&
                             s.Status == "Approved")

@@ -3,6 +3,7 @@ using Moq;
 using SPL.Attendance.Business.Services;
 using SPL.Attendance.Data.Entities;
 using SPL.Attendance.Data.Repositories;
+using System.Threading;
 using Xunit;
 
 namespace SPL.Attendance.Tests
@@ -17,6 +18,7 @@ namespace SPL.Attendance.Tests
         private readonly Mock<IShowCauseRepository> _showCauseMock;
         private readonly Mock<IEmployeeRepository> _employeeRepoMock;
         private readonly Mock<ICompanyPolicyRepository> _companyPolicyRepoMock;
+        private readonly Mock<IUnitOfWork> _unitOfWorkMock;
         private readonly AttendanceService _sut;
         private const int ValidEmployeeId = 1;
 
@@ -26,6 +28,7 @@ namespace SPL.Attendance.Tests
             _showCauseMock = new Mock<IShowCauseRepository>();
             _employeeRepoMock = new Mock<IEmployeeRepository>();
             _companyPolicyRepoMock = new Mock<ICompanyPolicyRepository>();
+            _unitOfWorkMock = new Mock<IUnitOfWork>();
 
             _companyPolicyRepoMock
                 .Setup(r => r.GetActiveAsync())
@@ -44,7 +47,8 @@ namespace SPL.Attendance.Tests
                 _repoMock.Object,
                 _showCauseMock.Object,
                 _employeeRepoMock.Object,
-                _companyPolicyRepoMock.Object);
+                _companyPolicyRepoMock.Object,
+                _unitOfWorkMock.Object);
         }
 
         // ????????????????????????????????????????????????????????????

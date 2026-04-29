@@ -20,6 +20,8 @@
 10. [Git Branching Strategy](#git-branching-strategy)
 11. [Commit Message Convention](#commit-message-convention)
 12. [Sprint Roadmap](#sprint-roadmap)
+13. [Recent Updates](#recent-updates)
+14. [Supervisor Assignment Rules](#supervisor-assignment-rules)
 
 ---
 
@@ -470,6 +472,22 @@ dotnet test --verbosity normal
 | Sprint 3 | Supervisor Approval | Approval workflow, Rejection flow, Status tracking | 🔜 Upcoming |
 | Sprint 4 | Movement Tracking | Employee out/in log, Reason entry, Supervisor visibility | 🔜 Upcoming |
 | Sprint 5 | Notifications | Missed check-in alerts, Emergency approval notifications | 🔜 Upcoming |
+
+---
+
+## Recent Updates
+
+- Supervisor assignments are validated to prevent circular references.
+- Assigned supervisors must exist and be active.
+- When no supervisor is assigned, `SupervisorName` is returned as an empty string.
+
+---
+
+## Supervisor Assignment Rules
+
+- Self-assignment as supervisor is rejected.
+- Circular supervisor chains are rejected.
+- Inactive or missing supervisors are rejected.
 
 ---
 

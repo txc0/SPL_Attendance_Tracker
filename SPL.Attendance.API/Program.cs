@@ -30,6 +30,7 @@ builder.Services.AddScoped<IEmployeeRepository, EmployeeRepository>();
 builder.Services.AddScoped<IShowCauseRepository, ShowCauseRepository>();
 builder.Services.AddScoped<ICompanyPolicyRepository, CompanyPolicyRepository>();
 builder.Services.AddScoped<IShowCauseService, ShowCauseService>();
+builder.Services.AddScoped<IUnitOfWork, UnitOfWork>();
 
 //   Business Layer
 builder.Services.AddScoped<IAttendanceService, AttendanceService>();
@@ -146,10 +147,15 @@ app.UseAuthentication();
 app.UseAuthorization();
 app.MapControllers();
 
-using (var scope = app.Services.CreateScope())
+if (!app.Environment.IsEnvironment("Testing"))
 {
-    var db = scope.ServiceProvider.GetRequiredService<SPLAttendanceDbContext>();
-    db.Database.Migrate();
+    using (var scope = app.Services.CreateScope())
+    {
+        var db = scope.ServiceProvider.GetRequiredService<SPLAttendanceDbContext>();
+        db.Database.Migrate();
+    }
 }
 
 app.Run();
+
+public partial class Program { }

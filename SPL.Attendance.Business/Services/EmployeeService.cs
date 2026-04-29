@@ -11,10 +11,12 @@ namespace SPL.Attendance.Business.Services
     public class EmployeeService : IEmployeeService
     {
         private readonly IEmployeeRepository _employeeRepo;
+        private readonly IUnitOfWork _unitOfWork;
 
-        public EmployeeService(IEmployeeRepository employeeRepo)
+        public EmployeeService(IEmployeeRepository employeeRepo, IUnitOfWork unitOfWork)
         {
             _employeeRepo = employeeRepo;
+            _unitOfWork = unitOfWork;
         }
 
         // ── GET ALL 
@@ -45,14 +47,9 @@ namespace SPL.Attendance.Business.Services
                     $"Employee code '{dto.EmployeeCode}' is already in use. " +
                     "Each employee must have a unique employee code.");
 
-            // Business Rule: If a supervisor is assigned, they must exist
+            // Business Rule: If a supervisor is assigned, they must exist and not create a cycle
             if (dto.SupervisorId.HasValue)
-            {
-                if (!await _employeeRepo.ExistsAsync(dto.SupervisorId.Value))
-                    throw new KeyNotFoundException(
-                        $"Supervisor with ID {dto.SupervisorId.Value} was not found. " +
-                        "Please assign a valid supervisor.");
-            }
+                await ValidateSupervisorAssignmentAsync(null, dto.SupervisorId.Value);
 
             var employee = new Employee
             {
@@ -65,8 +62,8 @@ namespace SPL.Attendance.Business.Services
             };
 
             var created = await _employeeRepo.AddAsync(employee);
+            await _unitOfWork.SaveChangesAsync();
 
-            // Re-fetch to include supervisor name
             var full = await _employeeRepo.GetByIdAsync(created.Id);
             return MapToDto(full!);
         }
@@ -78,18 +75,9 @@ namespace SPL.Attendance.Business.Services
             var employee = await _employeeRepo.GetByIdAsync(id)
                 ?? throw new KeyNotFoundException($"Employee with ID {id} was not found.");
 
-            // Business Rule: New supervisor must exist (if provided)
+            // Business Rule: New supervisor must exist (if provided) and must not create a cycle
             if (dto.SupervisorId.HasValue)
-            {
-                // Prevent self-assignment as supervisor
-                if (dto.SupervisorId.Value == id)
-                    throw new InvalidOperationException(
-                        "An employee cannot be their own supervisor.");
-
-                if (!await _employeeRepo.ExistsAsync(dto.SupervisorId.Value))
-                    throw new KeyNotFoundException(
-                        $"Supervisor with ID {dto.SupervisorId.Value} was not found.");
-            }
+                await ValidateSupervisorAssignmentAsync(id, dto.SupervisorId.Value);
 
             employee.Name        = dto.Name.Trim();
             employee.Email       = dto.Email?.Trim().ToLower();
@@ -97,6 +85,7 @@ namespace SPL.Attendance.Business.Services
             employee.SupervisorId = dto.SupervisorId;
 
             await _employeeRepo.UpdateAsync(employee);
+            await _unitOfWork.SaveChangesAsync();
 
             var updated = await _employeeRepo.GetByIdAsync(id);
             return MapToDto(updated!);
@@ -111,6 +100,7 @@ namespace SPL.Attendance.Business.Services
                 throw new KeyNotFoundException($"Employee with ID {id} was not found.");
 
             await _employeeRepo.DeactivateAsync(id);
+            await _unitOfWork.SaveChangesAsync();
         }
 
         // ── MAPPER ──────────────────────────────────────────────────────────
@@ -122,8 +112,34 @@ namespace SPL.Attendance.Business.Services
             Name           = e.Name,
             Email          = e.Email,
             SupervisorId   = e.SupervisorId,
-            SupervisorName = e.Supervisor?.Name,
+            SupervisorName = e.Supervisor?.Name ?? string.Empty,
             IsActive       = e.IsActive
         };
+
+        private async Task ValidateSupervisorAssignmentAsync(int? employeeId, int supervisorId)
+        {
+            var visited = new HashSet<int>();
+            if (employeeId.HasValue)
+                visited.Add(employeeId.Value);
+
+            var currentId = supervisorId;
+
+            while (true)
+            {
+                if (!visited.Add(currentId))
+                    throw new InvalidOperationException(
+                        "Supervisor assignment creates a circular reference.");
+
+                var supervisor = await _employeeRepo.GetByIdAsync(currentId);
+                if (supervisor == null || !supervisor.IsActive)
+                    throw new KeyNotFoundException(
+                        $"Supervisor with ID {currentId} was not found.");
+
+                if (!supervisor.SupervisorId.HasValue)
+                    break;
+
+                currentId = supervisor.SupervisorId.Value;
+            }
+        }
     }
 }
